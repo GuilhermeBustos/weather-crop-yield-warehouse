@@ -1,0 +1,11 @@
+# BigQuery dialect. Templater switches to `dbt` in Phase 3 when models land.
+[sqlfluff]
+dialect = bigquery
+templater = jinja
+max_line_length = 100
+
+[sqlfluff:indentation]
+tab_space_size = 2
+
+[sqlfluff:rules:capitalisation.keywords]
+capitalisation_policy = lower
