@@ -1,0 +1,63 @@
+#!/usr/bin/env bash
+# Enforces AGENT.md → Commit Message Convention: every commit message is a
+# single conventional-commit subject line. Runs before the commit object is
+# created — it normalizes the message in place, then validates it, so a clean
+# commit lands on the first try with no --amend needed.
+
+set -euo pipefail
+
+msg_file="${1:-}"
+if [ -z "$msg_file" ] || [ ! -f "$msg_file" ]; then
+  echo "[commit-msg] internal error: no message file argument" >&2
+  exit 1
+fi
+
+tmp_file="$(mktemp)"
+trap 'rm -f "$tmp_file"' EXIT
+
+# Drop trailers that agents inject mechanically — Co-authored-by (any casing)
+# and "Generated with|by …" attribution lines — then collapse the trailing
+# blank lines they leave behind. tolower($0) keeps the match case-insensitive.
+awk '
+  tolower($0) ~ /^[[:space:]]*co-authored-by:/ { next }
+  tolower($0) ~ /generated (with|by) /         { next }
+  /^[[:space:]]*$/                             { pending++; next }
+  {
+    while (pending > 0) { print ""; pending-- }
+    print
+  }
+' "$msg_file" > "$tmp_file"
+cp "$tmp_file" "$msg_file"
+
+# Exactly one non-blank, non-comment line may remain: no body, no extra
+# trailers (Signed-off-by, Closes, Refs, …) we refuse to silently rewrite.
+non_blank=$(grep -cvE '^[[:space:]]*(#|$)' "$msg_file" || true)
+if [ "$non_blank" -ne 1 ]; then
+  cat >&2 <<EOF
+[commit-msg] violation: commit message must be a single subject line.
+[commit-msg]   Found $non_blank non-empty lines after normalization.
+[commit-msg]   Strip the body / extra trailers and re-commit.
+EOF
+  exit 1
+fi
+
+subject="$(grep -vE '^[[:space:]]*(#|$)' "$msg_file" | head -n1)"
+
+# Conventional-commit shape: <type>(<scope>): <description>, scope optional.
+type_re='^(feat|fix|chore|refactor|test|docs|perf|style|ci|build|eslint)(\([a-z0-9-]+\))?: .+$'
+if ! printf '%s\n' "$subject" | grep -qE "$type_re"; then
+  cat >&2 <<EOF
+[commit-msg] violation: subject does not match the convention.
+[commit-msg]   Expected: <type>(<scope>): <description>
+[commit-msg]   Got:      $subject
+EOF
+  exit 1
+fi
+
+# <=72 chars keeps `git log --oneline` readable.
+if [ "${#subject}" -gt 72 ]; then
+  echo "[commit-msg] violation: subject exceeds 72 characters (${#subject})." >&2
+  exit 1
+fi
+
+exit 0

@@ -1,0 +1,31 @@
+# Phase 0 baseline. pre-commit owns all git hooks (pre-commit + commit-msg).
+# SQL linting (sqlfluff with the dbt templater) is wired in at Phase 3 once
+# dbt models exist; until then use `make lint` for Python.
+default_install_hook_types: [pre-commit, commit-msg]
+
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-added-large-files
+      - id: check-merge-conflict
+      - id: mixed-line-ending
+
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.15.18
+    hooks:
+      - id: ruff
+        args: [--fix]
+      - id: ruff-format
+
+  # Enforces AGENTS.md section 3 — single conventional-commit subject line.
+  - repo: local
+    hooks:
+      - id: commit-msg-convention
+        name: commit message convention
+        entry: .githooks/commit-msg
+        language: script
+        stages: [commit-msg]
