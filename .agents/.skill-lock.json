@@ -1,0 +1,31 @@
+{
+  "version": 2,
+  "skills": {
+    "coding-guidelines": {
+      "name": "coding-guidelines",
+      "source": "local",
+      "contentHash": "28a414c715d3c41aae28a25e2f109813ec3f246f76b5567c1e7d6a128cd289ff",
+      "installedAt": "2026-06-19T18:52:13.792Z",
+      "updatedAt": "2026-06-19T18:52:13.806Z",
+      "agents": [
+        "claude-code",
+        "cursor"
+      ],
+      "method": "copy",
+      "global": false
+    },
+    "tlc-spec-driven": {
+      "name": "tlc-spec-driven",
+      "source": "local",
+      "contentHash": "69867b0e19be1fb556d2e697f0f18f1de0363d1aa2de9d36754d5b107156357c",
+      "installedAt": "2026-06-19T18:52:13.804Z",
+      "updatedAt": "2026-06-19T18:52:13.813Z",
+      "agents": [
+        "claude-code",
+        "cursor"
+      ],
+      "method": "copy",
+      "global": false
+    }
+  }
+}
