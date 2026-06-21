@@ -5,7 +5,18 @@ templater = jinja
 max_line_length = 100
 
 [sqlfluff:indentation]
-tab_space_size = 2
+tab_space_size = 4
 
+# Uppercase every SQL language token for a uniform style. Identifiers
+# (your column/table/CTE names) stay snake_case — see note in PR/discussion.
 [sqlfluff:rules:capitalisation.keywords]
-capitalisation_policy = lower
+capitalisation_policy = upper
+
+[sqlfluff:rules:capitalisation.functions]
+extended_capitalisation_policy = upper
+
+[sqlfluff:rules:capitalisation.literals]
+capitalisation_policy = upper
+
+[sqlfluff:rules:capitalisation.types]
+extended_capitalisation_policy = upper
