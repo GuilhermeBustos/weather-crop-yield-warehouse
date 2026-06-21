@@ -71,7 +71,7 @@ flowchart LR
 | Infrastructure | Terraform |
 | Data quality | dbt tests (+ source freshness) |
 | CI/CD | GitHub Actions |
-| Tooling | `uv`/`poetry`, `ruff`, `sqlfluff`, `pre-commit`, `pytest` |
+| Tooling | `uv`, `ruff`, `sqlfluff`, `pre-commit`, `pytest` |
 
 ## Documentation
 
