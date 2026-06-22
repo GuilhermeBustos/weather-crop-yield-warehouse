@@ -42,4 +42,3 @@ class Settings(BaseSettings):
     # NASS Quick Stats
     commodities: list[str] = ["CORN", "SOYBEANS"]
     nass_year: int = 2025
-    nass_secret_name: str  # set WCY_NASS_SECRET_NAME to the Secret Manager resource name
