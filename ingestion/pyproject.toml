@@ -1,0 +1,25 @@
+[project]
+name = "wcy-ingestion"
+version = "0.1.0"
+requires-python = ">=3.12"
+dependencies = [
+    "pydantic-settings>=2.7",
+    "httpx>=0.28",
+    "tenacity>=9.0",
+    "pyarrow>=19.0",
+    "google-cloud-bigquery>=3.27",
+    "google-cloud-storage>=2.19",
+    "google-cloud-secret-manager>=2.23",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/wcy_ingestion"]
+
+[dependency-groups]
+dev = [
+    "respx>=0.22",
+]

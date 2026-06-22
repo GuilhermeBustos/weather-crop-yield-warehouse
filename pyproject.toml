@@ -12,10 +12,17 @@ dev = [
     "sqlfluff>=3.2",
     "pre-commit>=4.0",
     "pytest>=8.3",
+    "wcy-ingestion",
 ]
 
 [tool.uv]
 package = false
+
+[tool.uv.sources]
+wcy-ingestion = { workspace = true }
+
+[tool.uv.workspace]
+members = ["ingestion"]
 
 [tool.ruff]
 line-length = 100
