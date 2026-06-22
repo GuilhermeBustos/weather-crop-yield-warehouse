@@ -377,8 +377,10 @@ Use this section as a lightweight decision log (ADR-lite). Seed entries:
 - **Medallion layering** — bronze (GCS) → raw/staging (BQ) → marts (BQ).
 - **dbt Core** over Dataform — portability and ecosystem.
 - **Terraform** for all infra — reproducibility.
-- **Backfill window:** _decide and record_ (recommended 2000–present).
-- **Growing season definition:** _decide and record_ (recommended Apr–Oct; GDD base 10 °C).
+- **Backfill window:** _no historical backfill._ A single aligned slice only —
+  weather Apr 1–Oct 31 2025 + NASS 2025 (see Phase 2 decisions). Chosen for
+  free-tier budget and simplicity; multi-year backfill is explicitly out of scope.
+- **Growing season definition:** Apr 1 – Oct 31; **GDD base 10 °C** (base 50 °F).
 
 ### Phase 1 (Terraform) decisions
 
@@ -396,3 +398,31 @@ Use this section as a lightweight decision log (ADR-lite). Seed entries:
 - **Composer deferred:** `composer.tf` written but gated behind
   `enable_composer = false` until Phase 4 — it is the largest fixed cost and runs
   24/7, and milestones M1/M2 need no orchestration.
+
+### Phase 2 (Ingestion) decisions
+
+- **Thin aligned slice, no backfill.** Deliberately scoped to one free-tier-safe
+  vertical slice instead of the original 2000–present backfill: this is a skills
+  build on GCP free credits with a strict budget and free API limits to respect.
+- **Commodities:** corn & soybeans only — pull only what the warehouse uses.
+- **Geography:** Core Corn Belt — `IA`, `IL`, `IN`, `NE`, `MN` (~450 counties).
+  Bounds the centroid seed and API volume; widen later by editing `target_states`.
+- **Weather window:** 2025 growing season **Apr 1 – Oct 31 2025**, pulled once via
+  the Open-Meteo *archive* API with **coordinate batching** (a handful of calls,
+  far under 10k/day). One completed season — not <90-day rolling and not a
+  multi-year backfill — chosen so the data **aligns by year** with NASS yields.
+- **Yield year:** NASS **2025** (freshest *completed* crop year; county estimates
+  published by early 2026). 2026 yields don't exist yet — excluded.
+- **Why aligned over rolling:** a strict <90-day weather window would land
+  partial-2026 weather with no 2025 yield to join to, making the Phase 3 analysis
+  mart a structural demo. The 2025 season ↔ 2025 yield alignment keeps it cheap
+  *and* lets the headline `weather_yield_analysis` mart produce a real correlation.
+- **ELT discipline:** land raw as-is (NASS `Value` kept as `value_raw` STRING with
+  suppression flags intact); all cleaning/parsing happens in dbt (Phase 3).
+- **Idempotency:** bronze writes overwrite the partition prefix; BigQuery loads use
+  `WRITE_TRUNCATE` (full-table for this single window; partition-decorator
+  truncation is the path when more windows are added).
+- **Secrets:** NASS key read from Secret Manager at runtime via the pipeline SA —
+  never committed, defaulted, or logged.
+- **Packaging:** `ingestion/` becomes a `uv` **workspace member** (`wcy_ingestion`,
+  src layout) so `uv sync` installs it and the existing ruff/pytest config resolves.
