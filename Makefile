@@ -1,7 +1,10 @@
 .DEFAULT_GOAL := help
 UV := uv
+TF := terraform
+TF_DIR := infra/terraform
 
-.PHONY: help install lint fmt sql-lint test pre-commit
+.PHONY: help install lint fmt sql-lint test pre-commit \
+	tf-init tf-fmt tf-validate tf-plan tf-apply tf-destroy
 
 help: ## Show available targets
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | \
@@ -29,3 +32,21 @@ test: ## Run unit tests (pytest)
 
 pre-commit: ## Run all pre-commit hooks against the whole tree
 	$(UV) run pre-commit run --all-files
+
+tf-init: ## Init Terraform (remote state via backend.hcl)
+	$(TF) -chdir=$(TF_DIR) init -backend-config=backend.hcl
+
+tf-fmt: ## Format Terraform files
+	$(TF) -chdir=$(TF_DIR) fmt -recursive
+
+tf-validate: ## Validate Terraform (no backend or credentials needed)
+	$(TF) -chdir=$(TF_DIR) init -backend=false -input=false >/dev/null && $(TF) -chdir=$(TF_DIR) validate
+
+tf-plan: ## Plan the dev environment
+	$(TF) -chdir=$(TF_DIR) plan -var-file=dev.tfvars
+
+tf-apply: ## Apply the dev environment
+	$(TF) -chdir=$(TF_DIR) apply -var-file=dev.tfvars
+
+tf-destroy: ## Destroy the dev environment
+	$(TF) -chdir=$(TF_DIR) destroy -var-file=dev.tfvars
