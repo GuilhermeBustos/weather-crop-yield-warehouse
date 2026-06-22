@@ -379,3 +379,20 @@ Use this section as a lightweight decision log (ADR-lite). Seed entries:
 - **Terraform** for all infra — reproducibility.
 - **Backfill window:** _decide and record_ (recommended 2000–present).
 - **Growing season definition:** _decide and record_ (recommended Apr–Oct; GDD base 10 °C).
+
+### Phase 1 (Terraform) decisions
+
+- **Terraform layout:** flat root at `infra/terraform/`, files split by concern —
+  **no modules**. Each resource type is created a small fixed number of times, so
+  module indirection adds no reuse and only costs boilerplate. Datasets use
+  `for_each`. (Revisit if a `prod` environment is added.)
+- **Region:** `us-central1` for regional resources (GCS bronze, Composer);
+  BigQuery in the `US` multi-region.
+- **Remote state:** GCS backend with partial config (`backend.hcl`); the state
+  bucket is created manually (it cannot bootstrap itself).
+- **IAM:** least privilege — project-level `bigquery.jobUser`, dataset-level
+  `bigquery.dataEditor`, bucket-level `storage.objectAdmin`; additive
+  `*_iam_member` only.
+- **Composer deferred:** `composer.tf` written but gated behind
+  `enable_composer = false` until Phase 4 — it is the largest fixed cost and runs
+  24/7, and milestones M1/M2 need no orchestration.
