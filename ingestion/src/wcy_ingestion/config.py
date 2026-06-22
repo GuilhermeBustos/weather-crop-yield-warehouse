@@ -42,3 +42,4 @@ class Settings(BaseSettings):
     # NASS Quick Stats
     commodities: list[str] = ["CORN", "SOYBEANS"]
     nass_year: int = 2025
+    nass_secret_id: str  # set WCY_NASS_SECRET_ID in .env
