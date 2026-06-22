@@ -219,3 +219,22 @@ __marimo__/
 
 # Agent Skills CLI transient state (the lock file itself is tracked)
 .agents/*.backup
+
+# Terraform
+#   Tracked on purpose: *.tf, backend.hcl, *.tfvars.example, and
+#   .terraform.lock.hcl (the provider dependency lock).
+**/.terraform/*
+*.tfstate
+*.tfstate.*
+crash.log
+crash.*.log
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+.terraformrc
+terraform.rc
+# Keep environment values out of the repo (project_id etc.); commit the template.
+*.tfvars
+*.tfvars.json
+!*.tfvars.example
