@@ -6,7 +6,7 @@ from pathlib import Path
 
 _GAZETTEER_URL = (
     "https://www2.census.gov/geo/docs/maps-data/data/gazetteer/"
-    "2024_Gazetteer/2024_Gaz_counties_national.zip"
+    "2025_Gazetteer/2025_Gaz_counties_national.zip"
 )
 _OUT_COLUMNS = ["fips", "state_alpha", "county_name", "lat", "lon"]
 
@@ -20,7 +20,7 @@ def build(output: Path, states: list[str]) -> int:
         content = zf.read(txt_name).decode("utf-8")
 
     state_set = frozenset(states)
-    reader = csv.DictReader(io.StringIO(content), delimiter="\t")
+    reader = csv.DictReader(io.StringIO(content), delimiter="|")
     reader.fieldnames = [f.strip() for f in reader.fieldnames]
 
     rows = []
