@@ -19,7 +19,26 @@ Atomic tasks for the ingestion package. Code lives under `ingestion/src/wcy_inge
 | T12 | CLI entrypoint (`seed`/`weather`/`yield` subcommands) | `…/__main__.py` | T5, T10, T11 | `python -m wcy_ingestion <sub>` runs each pipeline |
 | T13 | Pytest suite, mocked HTTP (`respx`) | `ingestion/tests/…` | T6, T7, T8, T9 | batching, retry, parsing, partition pathing, idempotent load covered; no live network |
 | T14 | Repo glue: `make` targets + ingestion README | `Makefile`, `ingestion/README.md` | T12 | `make ingest-weather`/`ingest-yield`/`seed`; README documents env + run |
-| T15 | Verify + record decisions | `docs/IMPLEMENTATION_PLAN.md` (§8) | T1–T14 | `make lint` + `make test` green; Phase 2 decisions logged |
+| T15 | Verify + record decisions | `docs/IMPLEMENTATION_PLAN.md` (§8) | T1–T14, T16, T17 | `make lint` + `make test` green; Phase 2 decisions logged |
+
+## Rate-limit hardening (added after live 429s on Open-Meteo)
+
+A live `ingest-weather` run tripped Open-Meteo's weight-based minute limit: 10
+back-to-back batches (473 counties ÷ 50), each heavy (50 locations × ~214 days ×
+7 variables), exhausted the per-minute budget after ~2 calls. The static retry
+(`stop_after_attempt(5)`, exponential from `initial=1`) never waited long enough
+to ride out the 60s window. NASS and `seed` are unaffected — pacing is
+Open-Meteo-specific, so it lands in that client, not the shared HTTP helper.
+
+| # | Task | Files | Depends on | Done when |
+|---|------|-------|-----------|-----------|
+| T16 | Harden HTTP retry for 429 lockouts (honor `Retry-After`; 429-specific ≥60s backoff; raise attempts) | `…/clients/http.py`, `ingestion/tests/test_http.py` | T3 | 429 with `Retry-After` waits the advertised delay; without it, 429 backs off ≥60s; attempt budget rides out a full minute window; tests cover both paths with mocked sleep |
+| T17 | Pace Open-Meteo batches (configurable inter-batch delay) | `…/clients/openmeteo.py`, `…/config.py`, `ingestion/tests/test_openmeteo.py` | T2, T6 | new `WCY_OPENMETEO_*` delay sleeps between batches (not after the last); default keeps the 5-state run under the minute quota; test asserts N−1 sleeps without real waiting |
+
+Sequencing: land **T16** and **T17** before the final **T15** verify. T16 edits
+the shared retry policy (static decorator → custom wait that inspects the 429
+response; values stay constants, not env-wired). T17 adds the pacing knob to
+`Settings` and sleeps between iterations of the batch loop in `openmeteo.fetch`.
 
 ## Manual bootstrap (user, outside the code — needs GCP)
 
