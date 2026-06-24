@@ -52,7 +52,7 @@ def test_batches_and_flattens_to_fips_date():
         "fips": "19001",
         "latitude": 41.0,
         "longitude": -94.0,
-        "date": "2025-04-01",
+        "date": date(2025, 4, 1),  # a real date, not the ISO string
         "temperature_2m_max": 10.0,
     }
     assert {r["fips"] for r in records} == {"19001", "17001", "18001"}

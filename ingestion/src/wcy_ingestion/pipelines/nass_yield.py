@@ -1,4 +1,5 @@
 import logging
+from datetime import UTC, datetime
 
 from wcy_ingestion.clients import nass
 from wcy_ingestion.config import Settings
@@ -6,7 +7,9 @@ from wcy_ingestion.io import bigquery, gcs, secrets
 
 logger = logging.getLogger(__name__)
 
-_NASS_PREFIX = "bronze/nass_yield"
+# Bronze bucket root — the bucket is already the bronze layer, so no nested
+# `bronze/` prefix. raw.nass_yield is loaded straight from this Parquet.
+_NASS_PREFIX = "nass_yield"
 
 
 def run(settings: Settings) -> None:
@@ -29,6 +32,10 @@ def run(settings: Settings) -> None:
     )
     logger.info("fetched %d yield records", len(records))
 
+    # Stamp once at land time so bronze and raw carry the same _ingested_at.
+    ingested_at = datetime.now(UTC)
+    records = [{**r, "_ingested_at": ingested_at} for r in records]
+
     gcs.write_parquet(
         records,
         bucket=settings.bronze_bucket,
@@ -38,5 +45,10 @@ def run(settings: Settings) -> None:
     )
     logger.info("landed to gs://%s/%s", settings.bronze_bucket, _NASS_PREFIX)
 
-    bigquery.load_nass_yield(records, dataset=settings.raw_dataset, project=settings.project_id)
+    bigquery.load_nass_yield(
+        bucket=settings.bronze_bucket,
+        prefix=_NASS_PREFIX,
+        dataset=settings.raw_dataset,
+        project=settings.project_id,
+    )
     logger.info("loaded into %s.nass_yield", settings.raw_dataset)

@@ -26,15 +26,15 @@ def test_writes_one_blob_per_partition_value():
     patcher, bucket = _patched_bucket()
     try:
         write_parquet(
-            _RECORDS, bucket="b", prefix="bronze/weather_daily", partition_by="date", project="p"
+            _RECORDS, bucket="b", prefix="weather_daily", partition_by="date", project="p"
         )
     finally:
         patcher.stop()
 
     blob_names = [call.args[0] for call in bucket.blob.call_args_list]
     assert blob_names == [
-        "bronze/weather_daily/date=2025-04-01/part-0.parquet",
-        "bronze/weather_daily/date=2025-04-02/part-0.parquet",
+        "weather_daily/date=2025-04-01/part-0.parquet",
+        "weather_daily/date=2025-04-02/part-0.parquet",
     ]
 
 
@@ -43,25 +43,23 @@ def test_clears_prefix_before_writing():
     patcher, bucket = _patched_bucket(existing_blobs=sentinels)
     try:
         write_parquet(
-            _RECORDS, bucket="b", prefix="bronze/weather_daily", partition_by="date", project="p"
+            _RECORDS, bucket="b", prefix="weather_daily", partition_by="date", project="p"
         )
     finally:
         patcher.stop()
 
-    bucket.list_blobs.assert_called_once_with(prefix="bronze/weather_daily/")
+    bucket.list_blobs.assert_called_once_with(prefix="weather_daily/")
     bucket.delete_blobs.assert_called_once_with(sentinels)
 
 
 def test_empty_records_clears_prefix_and_writes_nothing():
     patcher, bucket = _patched_bucket()
     try:
-        write_parquet(
-            [], bucket="b", prefix="bronze/weather_daily", partition_by="date", project="p"
-        )
+        write_parquet([], bucket="b", prefix="weather_daily", partition_by="date", project="p")
     finally:
         patcher.stop()
 
-    bucket.list_blobs.assert_called_once_with(prefix="bronze/weather_daily/")
+    bucket.list_blobs.assert_called_once_with(prefix="weather_daily/")
     bucket.blob.assert_not_called()
 
 

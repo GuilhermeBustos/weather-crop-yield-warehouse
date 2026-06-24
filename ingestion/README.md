@@ -3,13 +3,14 @@
 Extract → land → load for the **weather × crop-yield** warehouse (Phase 2).
 
 Each pipeline pulls from a public API, lands raw **Parquet** in the GCS bronze
-bucket (Hive-partitioned), then loads it into a **BigQuery** `raw` table with an
-explicit schema and `WRITE_TRUNCATE` (so re-runs are idempotent).
+bucket (Hive-partitioned at the bucket root), then loads **that Parquet** into a
+**BigQuery** `raw` table with an explicit schema and `WRITE_TRUNCATE` (so re-runs
+are idempotent). The bronze bucket is the load source — not a side copy.
 
 | Pipeline | Source | Bronze prefix | Raw table |
 |---|---|---|---|
-| `weather` | [Open-Meteo Archive](https://open-meteo.com/en/docs/historical-weather-api) | `bronze/weather_daily/date=…` | `raw.weather_daily` |
-| `yield` | [USDA NASS Quick Stats](https://www.nass.usda.gov/developer/index.php) | `bronze/nass_yield/year=…` | `raw.nass_yield` |
+| `weather` | [Open-Meteo Archive](https://open-meteo.com/en/docs/historical-weather-api) | `weather_daily/date=…` | `raw.weather_daily` |
+| `yield` | [USDA NASS Quick Stats](https://www.nass.usda.gov/developer/index.php) | `nass_yield/year=…` | `raw.nass_yield` |
 
 The `seed` command is local-only: it builds the county-centroid CSV
 (`dbt/seeds/county_centroids.csv`) that the weather pipeline reads to know which

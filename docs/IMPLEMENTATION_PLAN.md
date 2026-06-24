@@ -426,3 +426,26 @@ Use this section as a lightweight decision log (ADR-lite). Seed entries:
   never committed, defaulted, or logged.
 - **Packaging:** `ingestion/` becomes a `uv` **workspace member** (`wcy_ingestion`,
   src layout) so `uv sync` installs it and the existing ruff/pytest config resolves.
+- **Rate-limit hardening (T16/T17, after live 429s):** the first live
+  `ingest-weather` tripped Open-Meteo's weight-based per-minute limit. Two-pronged
+  fix: (1) the shared retry inspects 429s — honours `Retry-After` (capped at 180s
+  so an outlier can't hang the run), else backs off a jittered ≥60s floor to
+  outlast the minute window, with the attempt budget raised to 8; transient
+  5xx/network keep the fast sub-minute exponential backoff. (2) Open-Meteo paces
+  batches via `WCY_OPENMETEO_BATCH_DELAY_SECONDS` (default 60s, N−1 sleeps) so a
+  5-state run stays under quota without leaning on the retry backstop. Pacing is
+  Open-Meteo-specific, so it lives in that client, not the shared HTTP helper.
+- **Bronze layout & bronze→raw load (T18/T19, after the first full live run):**
+  each source lands at the **bucket root** (`<bucket>/weather_daily`,
+  `<bucket>/nass_yield`) — the bucket is already the bronze layer, so the earlier
+  nested `bronze/` prefix was dropped (it produced `…-bronze/bronze/…`). BigQuery
+  now builds `raw` **from the bronze Parquet** via `load_table_from_uri(…/*.parquet)`,
+  making bronze the real load source instead of a parallel in-memory copy.
+  `_ingested_at` is stamped once at land time (bronze and raw agree), and weather
+  `date` / NASS `year` are typed in the Parquet (DATE / INT) so the files map to
+  the explicit `raw` schema. Still idempotent: overwrite the prefix,
+  `WRITE_TRUNCATE` the table.
+- **NASS aggregation levels (T20):** the Quick Stats query filters
+  `agg_level_desc ∈ {COUNTY, STATE}`, so `raw.nass_yield` holds only county and
+  state yields — AG DISTRICT / REGION / NATIONAL rows are excluded at the source,
+  matching the slice the Phase 3 mart joins on.

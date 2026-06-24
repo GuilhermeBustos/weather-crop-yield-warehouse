@@ -1,5 +1,6 @@
 import csv
 import logging
+from datetime import UTC, datetime
 from pathlib import Path
 
 from wcy_ingestion.clients import openmeteo
@@ -8,7 +9,9 @@ from wcy_ingestion.io import bigquery, gcs
 
 logger = logging.getLogger(__name__)
 
-_WEATHER_PREFIX = "bronze/weather_daily"
+# Bronze bucket root — the bucket is already the bronze layer, so no nested
+# `bronze/` prefix. raw.weather_daily is loaded straight from this Parquet.
+_WEATHER_PREFIX = "weather_daily"
 _DEFAULT_CENTROIDS_CSV = Path(__file__).parents[4] / "dbt" / "seeds" / "county_centroids.csv"
 
 
@@ -32,6 +35,10 @@ def run(settings: Settings, *, centroids_csv: Path | None = None) -> None:
     )
     logger.info("fetched %d weather records", len(records))
 
+    # Stamp once at land time so bronze and raw carry the same _ingested_at.
+    ingested_at = datetime.now(UTC)
+    records = [{**r, "_ingested_at": ingested_at} for r in records]
+
     gcs.write_parquet(
         records,
         bucket=settings.bronze_bucket,
@@ -41,7 +48,12 @@ def run(settings: Settings, *, centroids_csv: Path | None = None) -> None:
     )
     logger.info("landed to gs://%s/%s", settings.bronze_bucket, _WEATHER_PREFIX)
 
-    bigquery.load_weather(records, dataset=settings.raw_dataset, project=settings.project_id)
+    bigquery.load_weather(
+        bucket=settings.bronze_bucket,
+        prefix=_WEATHER_PREFIX,
+        dataset=settings.raw_dataset,
+        project=settings.project_id,
+    )
     logger.info("loaded into %s.weather_daily", settings.raw_dataset)
 
 

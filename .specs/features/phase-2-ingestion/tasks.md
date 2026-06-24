@@ -19,7 +19,7 @@ Atomic tasks for the ingestion package. Code lives under `ingestion/src/wcy_inge
 | T12 | CLI entrypoint (`seed`/`weather`/`yield` subcommands) | `…/__main__.py` | T5, T10, T11 | `python -m wcy_ingestion <sub>` runs each pipeline |
 | T13 | Pytest suite, mocked HTTP (`respx`) | `ingestion/tests/…` | T6, T7, T8, T9 | batching, retry, parsing, partition pathing, idempotent load covered; no live network |
 | T14 | Repo glue: `make` targets + ingestion README | `Makefile`, `ingestion/README.md` | T12 | `make ingest-weather`/`ingest-yield`/`seed`; README documents env + run |
-| T15 | Verify + record decisions | `docs/IMPLEMENTATION_PLAN.md` (§8) | T1–T14, T16, T17 | `make lint` + `make test` green; Phase 2 decisions logged |
+| T15 | Verify + record decisions | `docs/IMPLEMENTATION_PLAN.md` (§8) | T1–T14, T16–T20 | `make lint` + `make test` green; Phase 2 decisions logged |
 
 ## Rate-limit hardening (added after live 429s on Open-Meteo)
 
@@ -39,6 +39,31 @@ Sequencing: land **T16** and **T17** before the final **T15** verify. T16 edits
 the shared retry policy (static decorator → custom wait that inspects the 429
 response; values stay constants, not env-wired). T17 adds the pacing knob to
 `Settings` and sleeps between iterations of the batch loop in `openmeteo.fetch`.
+
+## Bronze landing & load-path corrections (after the first live weather run)
+
+The first end-to-end `ingest-weather` run (473 counties → 101,222 rows) proved
+the retry/pacing hardening works, but exposed two structural issues in how bronze
+is laid out and consumed, plus a functional gap the T15 verification caught:
+
+1. **Doubled prefix.** The bucket is already `…-bronze`, yet records landed under
+   a second `bronze/` path (`…-bronze/bronze/weather_daily`). Each source should
+   land at the **bucket root**: `…-bronze/weather_daily`, `…-bronze/nass_yield`.
+2. **Bronze written but never read.** The raw load used `load_table_from_json` on
+   the in-memory records, so GCS bronze was a parallel copy, not the load source.
+   BigQuery should build `raw` **from** the bronze Parquet — the real bronze→raw
+   medallion hop.
+3. **NASS over-fetch.** The client never sends `agg_level_desc`, so `raw.nass_yield`
+   would also ingest AG DISTRICT rows alongside the intended COUNTY + STATE.
+
+| # | Task | Files | Depends on | Done when |
+|---|------|-------|-----------|-----------|
+| T18 | Land bronze at the bucket root (drop the `bronze/` path prefix) | `…/pipelines/weather.py`, `…/pipelines/nass_yield.py`, `ingestion/tests/test_gcs.py` | T8 | weather lands at `<bucket>/weather_daily/…`, NASS at `<bucket>/nass_yield/…`; no `bronze/bronze/` doubling |
+| T19 | Build `raw` from the bronze Parquet (bronze→raw on the load path) | `…/io/bigquery.py`, `…/clients/openmeteo.py`, `…/pipelines/*.py`, `ingestion/tests/test_bigquery.py`, `…/test_openmeteo.py` | T18, T9 | loaders use `load_table_from_uri(gs://<bucket>/<prefix>/*.parquet, PARQUET)`; `_ingested_at` stamped into the records at land time (so bronze and raw agree); weather `date` lands as a Parquet DATE and NASS `year` as INT so the typed files map to the explicit BQ schema; `WRITE_TRUNCATE` keeps it idempotent; tests assert the uri-based load |
+| T20 | Filter NASS to `agg_level_desc ∈ {COUNTY, STATE}` (FR-5) | `…/clients/nass.py`, `ingestion/tests/test_nass.py` | T7 | `get_counts` + `api_GET` send `agg_level_desc=[COUNTY,STATE]` (httpx repeats the param = OR); test asserts both levels requested |
+
+Sequencing: **T18 → T19** (the uri load must point at the corrected, root-level
+prefix); **T20** is independent. All three land before the final **T15** verify.
 
 ## Manual bootstrap (user, outside the code — needs GCP)
 

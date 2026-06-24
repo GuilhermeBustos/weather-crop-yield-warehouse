@@ -72,7 +72,7 @@ def _fetch_batch(
                 "fips": fips,
                 "latitude": point["latitude"],
                 "longitude": point["longitude"],
-                "date": date_str,
+                "date": date.fromisoformat(date_str),
             }
             for var in variables:
                 row[var] = daily[var][idx]
