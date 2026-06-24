@@ -66,9 +66,10 @@ def test_filters_to_county_and_state_agg_levels():
 
     nass.fetch("KEY", commodities=["CORN"], states=["IA"], year=2025)
 
-    # Both the gate and the fetch carry the agg_level_desc filter.
+    # Both the gate and the fetch send agg_level_desc as a repeated param
+    # (NASS's OR syntax) — COUNTY and STATE, no AG DISTRICT.
     for route in (counts, data):
-        assert route.calls[0].request.url.params["agg_level_desc"] == "COUNTY,STATE"
+        assert route.calls[0].request.url.params.get_list("agg_level_desc") == ["COUNTY", "STATE"]
 
 
 @respx.mock

@@ -36,7 +36,9 @@ def fetch(
                 "key": api_key,
                 "commodity_desc": commodity,
                 "statisticcat_desc": "YIELD",
-                "agg_level_desc": "COUNTY,STATE",
+                # Repeated param = OR in the NASS API: keep only county- and
+                # state-level yields, dropping AG DISTRICT / REGION / NATIONAL.
+                "agg_level_desc": ["COUNTY", "STATE"],
                 "year": str(year),
                 "state_alpha": state,
             }
