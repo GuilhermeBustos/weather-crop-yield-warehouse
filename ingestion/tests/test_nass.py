@@ -60,6 +60,18 @@ def test_count_gate_aborts_before_fetch():
 
 
 @respx.mock
+def test_filters_to_county_and_state_agg_levels():
+    counts = respx.get(_COUNTS_URL).mock(return_value=httpx.Response(200, json={"count": 10}))
+    data = respx.get(_DATA_URL).mock(return_value=httpx.Response(200, json={"data": [_RAW]}))
+
+    nass.fetch("KEY", commodities=["CORN"], states=["IA"], year=2025)
+
+    # Both the gate and the fetch carry the agg_level_desc filter.
+    for route in (counts, data):
+        assert route.calls[0].request.url.params["agg_level_desc"] == "COUNTY,STATE"
+
+
+@respx.mock
 def test_paged_by_commodity_and_state():
     counts = respx.get(_COUNTS_URL).mock(return_value=httpx.Response(200, json={"count": 10}))
     data = respx.get(_DATA_URL).mock(return_value=httpx.Response(200, json={"data": [_RAW]}))
