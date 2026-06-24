@@ -20,10 +20,15 @@ _RETRYABLE_STATUS = frozenset({429, 500, 502, 503, 504})
 # until the current 60s window rolls over, so any sub-minute backoff just burns
 # attempts without ever clearing it. Honour the server's Retry-After when it
 # advertises one; otherwise wait out at least a full window. The attempt budget
-# is raised so it can ride out several back-to-back minute lockouts. These stay
-# constants — the inter-batch pacing knob is env-wired separately (T17).
+# is raised so it can ride out several back-to-back minute lockouts.
 _RATE_LIMIT_FLOOR_SECONDS = 60.0
 _RATE_LIMIT_JITTER_SECONDS = 10.0
+
+# Ceiling on a single honoured Retry-After. The real per-minute limit advertises
+# ≤60s, so this never clamps normal recovery; it only caps pathological outliers
+# (daily-quota / abuse blocks measured in many minutes) where waiting it out
+# would hang the run — better to bound the wait and fail fast.
+_RATE_LIMIT_CAP_SECONDS = 180.0
 _MAX_ATTEMPTS = 8
 
 # Transient 5xx / network errors recover fast — keep the original sub-minute,
@@ -61,7 +66,8 @@ def _retry_after_seconds(response: httpx.Response) -> float | None:
 def _wait_strategy(retry_state) -> float:
     """429 → ride out the rate-limit window; everything else → fast backoff.
 
-    On 429 we honour `Retry-After` if present, else fall back to a ≥60s floor
+    On 429 we honour `Retry-After` if present (capped at `_RATE_LIMIT_CAP_SECONDS`
+    so an outlier value can't hang the run), else fall back to a ≥60s floor
     (jittered) so the wait always outlasts the minute window. Other retryable
     failures (5xx, network) keep the original exponential-with-jitter backoff.
     """
@@ -71,7 +77,7 @@ def _wait_strategy(retry_state) -> float:
         if isinstance(exc, httpx.HTTPStatusError) and exc.response.status_code == 429:
             advertised = _retry_after_seconds(exc.response)
             if advertised is not None:
-                return advertised
+                return min(advertised, _RATE_LIMIT_CAP_SECONDS)
             return _RATE_LIMIT_FLOOR_SECONDS + random.uniform(0, _RATE_LIMIT_JITTER_SECONDS)
     return _transient_wait(retry_state)
 

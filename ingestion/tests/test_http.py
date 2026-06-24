@@ -7,6 +7,7 @@ import respx
 
 from wcy_ingestion.clients.http import (
     _MAX_ATTEMPTS,
+    _RATE_LIMIT_CAP_SECONDS,
     _retry_after_seconds,
     http_get,
 )
@@ -48,6 +49,21 @@ def test_429_honors_retry_after_header(sleeps):
 
     assert route.call_count == 2
     assert sleeps == [120.0]  # waits exactly the advertised delay
+
+
+@respx.mock
+def test_429_caps_outlier_retry_after(sleeps):
+    route = respx.get(_URL).mock(
+        side_effect=[
+            httpx.Response(429, headers={"Retry-After": "3600"}),
+            httpx.Response(200, json={"ok": True}),
+        ]
+    )
+    with httpx.Client() as client:
+        http_get(client, _URL)
+
+    assert route.call_count == 2
+    assert sleeps == [_RATE_LIMIT_CAP_SECONDS]  # clamped, not the advertised hour
 
 
 @respx.mock
