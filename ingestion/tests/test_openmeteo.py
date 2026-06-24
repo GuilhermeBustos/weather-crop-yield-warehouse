@@ -69,3 +69,49 @@ def test_batches_and_flattens_to_fips_date():
     assert {r["fips"] for r in records} == {"19001", "17001", "18001"}
     # Each (fips, date) appears exactly once
     assert len({(r["fips"], r["date"]) for r in records}) == 6
+
+
+@respx.mock
+def test_paces_between_batches_without_sleeping_after_last(monkeypatch):
+    slept: list[float] = []
+    monkeypatch.setattr(openmeteo.time, "sleep", slept.append)
+    respx.get(_URL).mock(return_value=httpx.Response(200, json=_point(41.0, -94.0, [10.0, 11.0])))
+
+    openmeteo.fetch(
+        _CENTROIDS,
+        start_date=date(2025, 4, 1),
+        end_date=date(2025, 4, 2),
+        variables=["temperature_2m_max"],
+        batch_size=1,
+        batch_delay_seconds=60.0,
+    )
+
+    # 3 centroids ÷ batch_size 1 == 3 batches → paced N−1 == 2 times, none after the last
+    assert slept == [60.0, 60.0]
+
+
+@respx.mock
+def test_no_pacing_for_a_single_batch(monkeypatch):
+    slept: list[float] = []
+    monkeypatch.setattr(openmeteo.time, "sleep", slept.append)
+    respx.get(_URL).mock(
+        return_value=httpx.Response(
+            200,
+            json=[
+                _point(41.0, -94.0, [10.0, 11.0]),
+                _point(40.0, -91.0, [12.0, 13.0]),
+                _point(39.0, -85.0, [14.0, 15.0]),
+            ],
+        )
+    )
+
+    openmeteo.fetch(
+        _CENTROIDS,
+        start_date=date(2025, 4, 1),
+        end_date=date(2025, 4, 2),
+        variables=["temperature_2m_max"],
+        batch_size=50,
+        batch_delay_seconds=60.0,
+    )
+
+    assert slept == []  # one batch → no inter-batch wait

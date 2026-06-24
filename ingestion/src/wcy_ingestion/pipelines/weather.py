@@ -28,6 +28,7 @@ def run(settings: Settings, *, centroids_csv: Path | None = None) -> None:
         end_date=settings.end_date,
         variables=settings.daily_variables,
         batch_size=settings.batch_size,
+        batch_delay_seconds=settings.openmeteo_batch_delay_seconds,
     )
     logger.info("fetched %d weather records", len(records))
 

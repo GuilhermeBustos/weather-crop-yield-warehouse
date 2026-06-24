@@ -1,3 +1,4 @@
+import time
 from datetime import date
 
 import httpx
@@ -18,11 +19,14 @@ def fetch(
     end_date: date,
     variables: list[str],
     batch_size: int = 50,
+    batch_delay_seconds: float = 0.0,
     client: httpx.Client | None = None,
 ) -> list[dict]:
     _client = client or build_client()
     records: list[dict] = []
-    for i in range(0, len(centroids), batch_size):
+    for n, i in enumerate(range(0, len(centroids), batch_size)):
+        if n > 0 and batch_delay_seconds > 0:
+            time.sleep(batch_delay_seconds)
         batch = centroids[i : i + batch_size]
         records.extend(
             _fetch_batch(

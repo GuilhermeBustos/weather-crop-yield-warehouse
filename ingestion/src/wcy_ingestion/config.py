@@ -38,6 +38,11 @@ class Settings(BaseSettings):
         "windspeed_10m_max",
     ]
     batch_size: int = 50
+    # Inter-batch pacing: a 5-state run is ~10 heavy batches, and ~2 of them
+    # exhaust Open-Meteo's per-minute weight budget. Sleeping a full window
+    # between batches (one batch per minute) keeps the whole run under the quota
+    # without leaning on the 429 retry backstop. Set to 0 to disable pacing.
+    openmeteo_batch_delay_seconds: float = 60.0
 
     # NASS Quick Stats
     commodities: list[str] = ["CORN", "SOYBEANS"]
