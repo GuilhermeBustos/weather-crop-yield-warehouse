@@ -68,8 +68,12 @@ Typed/cleaned passthrough of `raw.weather_daily`; dedupe on `(fips, date)` keepi
 
 ### `stg_nass_yield`
 - Build `fips = state_fips_code || county_code` (5 digits).
-- Parse `value_raw` → numeric `yield_value`; null out suppressed values (`(D)`, `(Z)`, …).
-- Keep only `statisticcat_desc = 'YIELD'`; standardize `commodity` to lowercase enum.
+- Parse `value_raw` → numeric `yield_value` (bu/acre); null out suppressed values
+  (`(D)`, `(Z)`, …).
+- Add `yield_value_t_ha` (tonnes/hectare) via the `bu_acre_to_t_ha` macro —
+  crop-specific factor (corn ×0.0627677, soy ×0.0672511; from bushel weights 56/60 lb).
+- Keep only `statisticcat_desc = 'YIELD'` grain yield in `BU / ACRE`; standardize
+  `commodity` to lowercase enum.
 - Grain: `(fips, commodity, year)`.
 
 ---
@@ -101,14 +105,16 @@ Grain: `(fips, year)`.
 ### Dimensions
 - **`dim_county`** — from the `county_centroids` seed: `fips`, `state_alpha`,
   `county_name`, `lat`, `lon`.
-- **`dim_commodity`** — `commodity` (`corn`/`soybeans`), display name, default GDD base.
+- **`dim_commodity`** — `commodity` (`corn`/`soybeans`), display name, default GDD base,
+  `bushel_weight_lb` (56/60 — physical basis of the bu/acre → t/ha conversion).
 - **`dim_date`** — calendar dimension (year, month, day, season flags).
 
 ### Facts
 - **`fact_weather_daily`** — daily grain, FK `fips`+`date`. Partition by `date`, cluster by
   `fips`. (Incremental dbt model — this is the largest table.)
-- **`fact_crop_yield`** — `(fips, commodity, year)` grain with `yield_value`, `unit`.
-  Partition by `year`, cluster by `state_alpha`, `commodity`.
+- **`fact_crop_yield`** — `(fips, commodity, year)` grain with `yield_value` (bu/acre),
+  `yield_value_t_ha` (tonnes/hectare), `unit`. Partition by `year`, cluster by
+  `state_alpha`, `commodity`.
 
 ### Analysis mart (headline)
 **`weather_yield_analysis`** — one row per `(fips, commodity, year)` joining
@@ -119,7 +125,7 @@ Grain: `(fips, year)`.
 | `fips`, `state_alpha`, `county_name` | dim_county |
 | `commodity` | fact_crop_yield |
 | `year` | grain |
-| `yield_value`, `unit` | fact_crop_yield |
+| `yield_value`, `yield_value_t_ha`, `unit` | fact_crop_yield |
 | `gdd`, `precip_total_mm`, `heat_stress_days`, `dry_days`, `et0_total_mm`, `tmax_mean` | growing-season features |
 
 Partition by `year`; cluster by `state_alpha`, `commodity`. This is the table for
