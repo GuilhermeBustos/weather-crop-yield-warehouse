@@ -26,11 +26,7 @@ def test_writes_one_blob_per_partition_value():
     patcher, bucket = _patched_bucket()
     try:
         write_parquet(
-            _RECORDS,
-            bucket="b",
-            prefix="bronze/weather_daily",
-            partition_by="date",
-            project="p",
+            _RECORDS, bucket="b", prefix="bronze/weather_daily", partition_by="date", project="p"
         )
     finally:
         patcher.stop()
@@ -47,11 +43,7 @@ def test_clears_prefix_before_writing():
     patcher, bucket = _patched_bucket(existing_blobs=sentinels)
     try:
         write_parquet(
-            _RECORDS,
-            bucket="b",
-            prefix="bronze/weather_daily",
-            partition_by="date",
-            project="p",
+            _RECORDS, bucket="b", prefix="bronze/weather_daily", partition_by="date", project="p"
         )
     finally:
         patcher.stop()
@@ -64,11 +56,7 @@ def test_empty_records_clears_prefix_and_writes_nothing():
     patcher, bucket = _patched_bucket()
     try:
         write_parquet(
-            [],
-            bucket="b",
-            prefix="bronze/weather_daily",
-            partition_by="date",
-            project="p",
+            [], bucket="b", prefix="bronze/weather_daily", partition_by="date", project="p"
         )
     finally:
         patcher.stop()

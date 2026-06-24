@@ -22,17 +22,12 @@ def _yield(settings: Settings) -> None:
     nass_yield.run(settings)
 
 
-_COMMANDS = {
-    "seed": _seed,
-    "weather": _weather,
-    "yield": _yield,
-}
+_COMMANDS = {"seed": _seed, "weather": _weather, "yield": _yield}
 
 
 def main() -> None:
     logging.basicConfig(
-        level=logging.INFO,
-        format="%(asctime)s %(levelname)s %(name)s: %(message)s",
+        level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s"
     )
 
     parser = argparse.ArgumentParser(prog="wcy_ingestion")

@@ -38,9 +38,5 @@ def run(settings: Settings) -> None:
     )
     logger.info("landed to gs://%s/%s", settings.bronze_bucket, _NASS_PREFIX)
 
-    bigquery.load_nass_yield(
-        records,
-        dataset=settings.raw_dataset,
-        project=settings.project_id,
-    )
+    bigquery.load_nass_yield(records, dataset=settings.raw_dataset, project=settings.project_id)
     logger.info("loaded into %s.nass_yield", settings.raw_dataset)

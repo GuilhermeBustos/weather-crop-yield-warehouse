@@ -30,11 +30,7 @@ def fetch(
         batch = centroids[i : i + batch_size]
         records.extend(
             _fetch_batch(
-                batch,
-                start_date=start_date,
-                end_date=end_date,
-                variables=variables,
-                client=_client,
+                batch, start_date=start_date, end_date=end_date, variables=variables, client=_client
             )
         )
     return records

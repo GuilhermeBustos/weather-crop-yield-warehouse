@@ -7,12 +7,7 @@ from google.cloud import storage
 
 
 def write_parquet(
-    records: list[dict],
-    *,
-    bucket: str,
-    prefix: str,
-    partition_by: str,
-    project: str,
+    records: list[dict], *, bucket: str, prefix: str, partition_by: str, project: str
 ) -> None:
     """Write records as Hive-partitioned Parquet to GCS, replacing the prefix."""
     client = storage.Client(project=project)

@@ -41,11 +41,7 @@ def run(settings: Settings, *, centroids_csv: Path | None = None) -> None:
     )
     logger.info("landed to gs://%s/%s", settings.bronze_bucket, _WEATHER_PREFIX)
 
-    bigquery.load_weather(
-        records,
-        dataset=settings.raw_dataset,
-        project=settings.project_id,
-    )
+    bigquery.load_weather(records, dataset=settings.raw_dataset, project=settings.project_id)
     logger.info("loaded into %s.weather_daily", settings.raw_dataset)
 
 

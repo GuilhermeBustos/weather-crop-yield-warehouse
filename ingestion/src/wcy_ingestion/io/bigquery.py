@@ -32,12 +32,7 @@ _NASS_SCHEMA = [
 ]
 
 
-def load_weather(
-    records: list[dict],
-    *,
-    dataset: str,
-    project: str,
-) -> None:
+def load_weather(records: list[dict], *, dataset: str, project: str) -> None:
     """Load weather records into raw.weather_daily (WRITE_TRUNCATE)."""
     ingested_at = datetime.now(UTC).isoformat()
     rows = [{**r, "_ingested_at": ingested_at} for r in records]
@@ -47,25 +42,17 @@ def load_weather(
         schema=_WEATHER_SCHEMA,
         write_disposition=bigquery.WriteDisposition.WRITE_TRUNCATE,
         time_partitioning=bigquery.TimePartitioning(
-            type_=bigquery.TimePartitioningType.DAY,
-            field="date",
+            type_=bigquery.TimePartitioningType.DAY, field="date"
         ),
         clustering_fields=["fips"],
     )
     job = client.load_table_from_json(
-        rows,
-        f"{project}.{dataset}.weather_daily",
-        job_config=job_config,
+        rows, f"{project}.{dataset}.weather_daily", job_config=job_config
     )
     job.result()
 
 
-def load_nass_yield(
-    records: list[dict],
-    *,
-    dataset: str,
-    project: str,
-) -> None:
+def load_nass_yield(records: list[dict], *, dataset: str, project: str) -> None:
     """Load NASS yield records into raw.nass_yield (WRITE_TRUNCATE)."""
     ingested_at = datetime.now(UTC).isoformat()
     rows = [{**r, "_ingested_at": ingested_at} for r in records]
@@ -75,14 +62,11 @@ def load_nass_yield(
         schema=_NASS_SCHEMA,
         write_disposition=bigquery.WriteDisposition.WRITE_TRUNCATE,
         range_partitioning=bigquery.RangePartitioning(
-            field="year",
-            range_=bigquery.PartitionRange(start=2000, end=2100, interval=1),
+            field="year", range_=bigquery.PartitionRange(start=2000, end=2100, interval=1)
         ),
         clustering_fields=["state_alpha", "commodity_desc"],
     )
     job = client.load_table_from_json(
-        rows,
-        f"{project}.{dataset}.nass_yield",
-        job_config=job_config,
+        rows, f"{project}.{dataset}.nass_yield", job_config=job_config
     )
     job.result()

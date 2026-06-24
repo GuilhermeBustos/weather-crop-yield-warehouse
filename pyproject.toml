@@ -32,8 +32,12 @@ src = ["ingestion/src", "ingestion/tests"]
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B", "W", "C4", "SIM"]
 
+[tool.ruff.lint.isort]
+split-on-trailing-comma = false
+
 [tool.ruff.format]
 docstring-code-format = true
+skip-magic-trailing-comma = true
 
 [tool.pytest.ini_options]
 addopts = "-q"

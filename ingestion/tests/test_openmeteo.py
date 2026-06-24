@@ -7,21 +7,14 @@ from wcy_ingestion.clients import openmeteo
 
 _URL = "https://archive-api.open-meteo.com/v1/archive"
 
-_CENTROIDS = [
-    ("19001", 41.0, -94.0),
-    ("17001", 40.0, -91.0),
-    ("18001", 39.0, -85.0),
-]
+_CENTROIDS = [("19001", 41.0, -94.0), ("17001", 40.0, -91.0), ("18001", 39.0, -85.0)]
 
 
 def _point(lat, lon, highs):
     return {
         "latitude": lat,
         "longitude": lon,
-        "daily": {
-            "time": ["2025-04-01", "2025-04-02"],
-            "temperature_2m_max": highs,
-        },
+        "daily": {"time": ["2025-04-01", "2025-04-02"], "temperature_2m_max": highs},
     }
 
 
@@ -31,11 +24,7 @@ def test_batches_and_flattens_to_fips_date():
     route = respx.get(_URL).mock(
         side_effect=[
             httpx.Response(
-                200,
-                json=[
-                    _point(41.0, -94.0, [10.0, 11.0]),
-                    _point(40.0, -91.0, [12.0, 13.0]),
-                ],
+                200, json=[_point(41.0, -94.0, [10.0, 11.0]), _point(40.0, -91.0, [12.0, 13.0])]
             ),
             httpx.Response(200, json=_point(39.0, -85.0, [14.0, 15.0])),
         ]
