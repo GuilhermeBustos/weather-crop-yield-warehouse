@@ -1,0 +1,47 @@
+version: 2
+
+models:
+  - name: int_weather_growing_season
+    description: >
+      Per-(fips, year) growing-season weather features aggregated from
+      stg_weather_daily. The season window is driven by the growing_season_start
+      and growing_season_end dbt vars (default Apr 1 / Oct 31, MM-DD).
+      GDD uses base 10 °C; GREATEST(0, ...) ensures gdd is never negative.
+      Heat-stress and dry-day counts use the agronomic thresholds
+      Tmax > 30 °C and precipitation < 1 mm respectively.
+    data_tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns: [fips, year]
+    columns:
+      - name: fips
+        description: 5-digit county FIPS code.
+        data_tests:
+          - not_null
+      - name: year
+        description: Crop year extracted from the observation date.
+        data_tests:
+          - not_null
+      - name: gdd
+        description: >
+          Cumulative growing degree days over the season (base 10 °C).
+          Σ GREATEST(0, (tmax + tmin) / 2 − 10) per day. Always ≥ 0.
+        data_tests:
+          - not_null
+      - name: precip_total_mm
+        description: >
+          Total precipitation in mm over the season. Always ≥ 0.
+        data_tests:
+          - not_null
+      - name: heat_stress_days
+        description: Number of days in the season where daily maximum temperature exceeded 30 °C.
+      - name: dry_days
+        description: Number of days in the season where total precipitation was less than 1 mm.
+      - name: et0_total_mm
+        description: Cumulative reference evapotranspiration (FAO-56 Penman-Monteith) in mm over the season.
+      - name: radiation_mean
+        description: Mean daily surface shortwave radiation over the season in MJ m⁻².
+      - name: tmax_mean
+        description: Mean daily maximum temperature at 2 m over the season in °C.
+      - name: tmin_mean
+        description: Mean daily minimum temperature at 2 m over the season in °C.
