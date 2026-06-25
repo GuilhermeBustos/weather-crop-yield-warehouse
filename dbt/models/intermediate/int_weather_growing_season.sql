@@ -1,14 +1,15 @@
 WITH season AS (
     SELECT
         fips,
-        EXTRACT(YEAR FROM date) AS year,
         temperature_2m_max,
         temperature_2m_min,
         precipitation_sum,
         et0_fao_evapotranspiration,
-        solar_radiation_mjm2
+        solar_radiation_mjm2,
+        EXTRACT(YEAR FROM date) AS year
     FROM {{ ref('stg_weather_daily') }}
-    WHERE FORMAT_DATE('%m-%d', date) >= '{{ var("growing_season_start") }}'
+    WHERE
+        FORMAT_DATE('%m-%d', date) >= '{{ var("growing_season_start") }}'
         AND FORMAT_DATE('%m-%d', date) <= '{{ var("growing_season_end") }}'
 )
 

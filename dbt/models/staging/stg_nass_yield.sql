@@ -5,20 +5,21 @@ WITH source AS (
 filtered AS (
     SELECT *
     FROM source
-    WHERE statisticcat_desc = 'YIELD'
+    WHERE
+        statisticcat_desc = 'YIELD'
         AND unit_desc = 'BU / ACRE'
 ),
 
 parsed AS (
     SELECT
-        LPAD(state_fips_code, 2, '0') || LPAD(county_code, 3, '0') AS fips,
-        LOWER(commodity_desc) AS commodity,
-        agg_level,
         state_alpha,
         year,
+        agg_level_desc AS agg_level,
         unit_desc AS unit,
-        SAFE_CAST(REPLACE(value_raw, ',', '') AS FLOAT64) AS yield_value,
-        _ingested_at
+        _ingested_at,
+        LPAD(state_fips_code, 2, '0') || LPAD(county_code, 3, '0') AS fips,
+        LOWER(commodity_desc) AS commodity,
+        SAFE_CAST(REPLACE(value_raw, ',', '') AS FLOAT64) AS yield_value
     FROM filtered
 )
 

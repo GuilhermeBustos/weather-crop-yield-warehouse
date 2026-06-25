@@ -18,6 +18,6 @@ SELECT
     wind_speed_kmh,
     _ingested_at
 FROM {{ ref('stg_weather_daily') }}
-{% if is_incremental() %}
-WHERE date >= (SELECT MAX(date) FROM {{ this }})
-{% endif %}
+{%- if is_incremental() %}
+    WHERE date >= (SELECT MAX(t.date) FROM {{ this }} AS t)
+{%- endif %}
