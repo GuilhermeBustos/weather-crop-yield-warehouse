@@ -2,7 +2,7 @@ version: 2
 
 sources:
   - name: raw
-    schema: "{{ var('raw_dataset') }}"
+    schema: "{{ env_var('DBT_RAW_DATASET') }}"
     description: >
       Raw ingestion layer loaded by the Python pipelines (Phase 2).
       All columns are typed as-landed; parsing and deduplication happen
