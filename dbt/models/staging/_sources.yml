@@ -1,0 +1,68 @@
+version: 2
+
+sources:
+  - name: raw
+    schema: "{{ var('raw_dataset') }}"
+    description: >
+      Raw ingestion layer loaded by the Python pipelines (Phase 2).
+      All columns are typed as-landed; parsing and deduplication happen
+      in the staging layer.
+
+    tables:
+      - name: weather_daily
+        description: >
+          One row per (fips, date) as fetched from the Open-Meteo API.
+          Partitioned by date, clustered by fips. May contain duplicate
+          (fips, date) pairs across ingestion runs; stg_weather_daily
+          deduplicates on latest _ingested_at.
+        columns:
+          - name: fips
+            description: 5-digit county FIPS code (STRING).
+          - name: date
+            description: Observation date (DATE).
+          - name: tmax_c
+            description: Daily maximum temperature in °C.
+          - name: tmin_c
+            description: Daily minimum temperature in °C.
+          - name: precipitation_mm
+            description: Daily precipitation in mm.
+          - name: et0_mm
+            description: Reference evapotranspiration (Penman-Monteith) in mm.
+          - name: solar_radiation_mjm2
+            description: Surface solar radiation in MJ m⁻².
+          - name: wind_speed_kmh
+            description: Mean wind speed at 10 m in km h⁻¹.
+          - name: _ingested_at
+            description: UTC timestamp when the row was written to BigQuery.
+
+      - name: nass_yield
+        description: >
+          Raw NASS Quick Stats crop yield records for corn and soybeans,
+          COUNTY and STATE aggregation levels, 2025 season.
+          value_raw is kept as STRING to preserve suppression flags
+          such as (D), (Z), and (NA); stg_nass_yield parses it to numeric.
+        columns:
+          - name: state_fips_code
+            description: 2-digit state FIPS code as a string.
+          - name: county_code
+            description: 3-digit county code as a string (right-padded with zeros).
+          - name: state_alpha
+            description: 2-letter state abbreviation.
+          - name: commodity_desc
+            description: Commodity name in upper case (e.g. CORN, SOYBEANS).
+          - name: statisticcat_desc
+            description: Statistic category (e.g. YIELD, AREA HARVESTED).
+          - name: unit_desc
+            description: Unit of measure (e.g. BU / ACRE, TONS / ACRE).
+          - name: short_desc
+            description: Full item description combining commodity, statistic, and unit.
+          - name: agg_level_desc
+            description: Aggregation level — COUNTY or STATE.
+          - name: year
+            description: Crop year (INTEGER).
+          - name: value_raw
+            description: >
+              Raw string value from NASS. May be a number (possibly with
+              thousands separators) or a suppression flag such as (D) or (Z).
+          - name: _ingested_at
+            description: UTC timestamp when the row was written to BigQuery.
