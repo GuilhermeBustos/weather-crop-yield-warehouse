@@ -1,0 +1,51 @@
+version: 2
+
+models:
+  - name: fact_weather_daily
+    description: >
+      Incremental daily weather fact table. Partitioned by date, clustered by
+      fips, using insert_overwrite so each incremental run replaces the most
+      recent date partitions rather than upserting individual rows. Sourced
+      from stg_weather_daily (already deduplicated on fips, date).
+      Grain (fips, date).
+    data_tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns: [fips, date]
+    columns:
+      - name: fips
+        description: 5-digit county FIPS code. Foreign key to dim_county.
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_county')
+                field: fips
+      - name: date
+        description: Observation date.
+        data_tests:
+          - not_null
+      - name: temperature_2m_max
+        description: Daily maximum temperature at 2 m in °C.
+        data_tests:
+          - not_null
+      - name: temperature_2m_min
+        description: Daily minimum temperature at 2 m in °C.
+        data_tests:
+          - not_null
+      - name: temperature_2m_mean
+        description: Daily mean temperature at 2 m in °C.
+      - name: precipitation_sum
+        description: Daily precipitation total in mm.
+        data_tests:
+          - not_null
+      - name: et0_fao_evapotranspiration
+        description: Reference evapotranspiration (FAO-56 Penman-Monteith) in mm.
+      - name: solar_radiation_mjm2
+        description: Surface shortwave radiation sum in MJ m⁻².
+      - name: wind_speed_kmh
+        description: Maximum wind speed at 10 m in km h⁻¹.
+      - name: _ingested_at
+        description: UTC timestamp of the ingestion run that wrote the source row.
+        data_tests:
+          - not_null
