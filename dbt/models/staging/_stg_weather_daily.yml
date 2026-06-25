@@ -3,10 +3,10 @@ version: 2
 models:
   - name: stg_weather_daily
     description: >
-      Typed and renamed passthrough of raw.weather_daily. Deduplicates
-      (fips, date) pairs by keeping the row with the latest _ingested_at,
-      so each county-day appears exactly once. Open-Meteo native variable
-      names are shortened and annotated with unit suffixes.
+      Deduplicated passthrough of raw.weather_daily. Keeps the latest
+      _ingested_at row per (fips, date) grain using ROW_NUMBER(). Open-Meteo
+      column names are preserved except shortwave_radiation_sum (→
+      solar_radiation_mjm2) and windspeed_10m_max (→ wind_speed_kmh).
     data_tests:
       - dbt_utils.unique_combination_of_columns:
           arguments:
@@ -20,24 +20,22 @@ models:
         description: Observation date.
         data_tests:
           - not_null
-      - name: tmax_c
-        description: Daily maximum temperature at 2 m in °C (temperature_2m_max).
+      - name: temperature_2m_max
+        description: Daily maximum temperature at 2 m in °C.
         data_tests:
           - not_null
-      - name: tmin_c
-        description: Daily minimum temperature at 2 m in °C (temperature_2m_min).
+      - name: temperature_2m_min
+        description: Daily minimum temperature at 2 m in °C.
         data_tests:
           - not_null
-      - name: tmean_c
-        description: Daily mean temperature at 2 m in °C (temperature_2m_mean).
-      - name: precipitation_mm
-        description: Daily precipitation total in mm (precipitation_sum).
+      - name: temperature_2m_mean
+        description: Daily mean temperature at 2 m in °C.
+      - name: precipitation_sum
+        description: Daily precipitation total in mm.
         data_tests:
           - not_null
-      - name: et0_mm
-        description: >
-          Reference evapotranspiration (FAO-56 Penman-Monteith) in mm
-          (et0_fao_evapotranspiration).
+      - name: et0_fao_evapotranspiration
+        description: Reference evapotranspiration (FAO-56 Penman-Monteith) in mm.
       - name: solar_radiation_mjm2
         description: Surface shortwave radiation sum in MJ m⁻² (shortwave_radiation_sum).
       - name: wind_speed_kmh
