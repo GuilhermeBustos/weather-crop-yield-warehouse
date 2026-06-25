@@ -1,0 +1,35 @@
+version: 2
+
+models:
+  - name: dim_commodity
+    description: >
+      Static commodity dimension for the two crops in scope (corn, soybeans).
+      Carries the physical constants that underpin the bu/acre → t/ha
+      conversion: bushel_weight_lb is the basis for the bu_acre_to_t_ha macro
+      factors (corn 56 lb × 0.45359237 ÷ 1000 ÷ 0.40468564 = 0.0627677;
+      soybeans 60 lb → 0.0672511). Grain commodity.
+    columns:
+      - name: commodity
+        description: Lowercase commodity key (corn, soybeans). Primary key.
+        data_tests:
+          - not_null
+          - unique
+          - accepted_values:
+              arguments:
+                values: [corn, soybeans]
+      - name: display_name
+        description: Human-readable commodity name (Corn, Soybeans).
+        data_tests:
+          - not_null
+      - name: gdd_base_c
+        description: >
+          GDD base temperature in °C used for growing degree day accumulation.
+          10 °C (50 °F) for both corn and soybeans.
+        data_tests:
+          - not_null
+      - name: bushel_weight_lb
+        description: >
+          Standard bushel weight in pounds. Corn = 56 lb, Soybeans = 60 lb.
+          Used to derive the crop-specific bu/acre → t/ha conversion factor.
+        data_tests:
+          - not_null
