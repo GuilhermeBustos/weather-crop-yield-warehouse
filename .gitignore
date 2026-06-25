@@ -238,3 +238,9 @@ terraform.rc
 *.tfvars
 *.tfvars.json
 !*.tfvars.example
+
+# dbt build artifacts — never commit
+dbt/target/
+dbt/dbt_packages/
+dbt/logs/
+dbt/profiles/.user.yml

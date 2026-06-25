@@ -12,7 +12,9 @@ dev = [
     "sqlfluff>=3.2",
     "pre-commit>=4.0",
     "pytest>=8.3",
+    "respx>=0.22",
     "wcy-ingestion",
+    "dbt-bigquery>=1.8.0,<2.0.0",
 ]
 
 [tool.uv]
