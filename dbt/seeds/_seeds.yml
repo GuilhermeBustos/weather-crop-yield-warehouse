@@ -1,0 +1,26 @@
+version: 2
+
+seeds:
+  - name: county_centroids
+    description: >
+      County centroid coordinates for the 5 Corn Belt states in scope
+      (IA, IL, IN, MN, NE). 474 rows. Used to build dim_county and to
+      join weather data (sampled at centroids) to crop yield records.
+    config:
+      column_types:
+        fips: STRING
+        state_alpha: STRING
+        county_name: STRING
+        lat: FLOAT64
+        lon: FLOAT64
+    columns:
+      - name: fips
+        description: 5-digit county FIPS code. Typed STRING to preserve leading zeros.
+      - name: state_alpha
+        description: 2-letter state abbreviation (IA, IL, IN, MN, NE).
+      - name: county_name
+        description: Full county name including the word "County".
+      - name: lat
+        description: Centroid latitude in decimal degrees.
+      - name: lon
+        description: Centroid longitude in decimal degrees.
