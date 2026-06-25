@@ -1,0 +1,48 @@
+version: 2
+
+models:
+  - name: stg_weather_daily
+    description: >
+      Typed and renamed passthrough of raw.weather_daily. Deduplicates
+      (fips, date) pairs by keeping the row with the latest _ingested_at,
+      so each county-day appears exactly once. Open-Meteo native variable
+      names are shortened and annotated with unit suffixes.
+    data_tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns: [fips, date]
+    columns:
+      - name: fips
+        description: 5-digit county FIPS code (STRING).
+        data_tests:
+          - not_null
+      - name: date
+        description: Observation date.
+        data_tests:
+          - not_null
+      - name: tmax_c
+        description: Daily maximum temperature at 2 m in °C (temperature_2m_max).
+        data_tests:
+          - not_null
+      - name: tmin_c
+        description: Daily minimum temperature at 2 m in °C (temperature_2m_min).
+        data_tests:
+          - not_null
+      - name: tmean_c
+        description: Daily mean temperature at 2 m in °C (temperature_2m_mean).
+      - name: precipitation_mm
+        description: Daily precipitation total in mm (precipitation_sum).
+        data_tests:
+          - not_null
+      - name: et0_mm
+        description: >
+          Reference evapotranspiration (FAO-56 Penman-Monteith) in mm
+          (et0_fao_evapotranspiration).
+      - name: solar_radiation_mjm2
+        description: Surface shortwave radiation sum in MJ m⁻² (shortwave_radiation_sum).
+      - name: wind_speed_kmh
+        description: Maximum wind speed at 10 m in km h⁻¹ (windspeed_10m_max).
+      - name: _ingested_at
+        description: UTC timestamp of the ingestion run that wrote the source row.
+        data_tests:
+          - not_null

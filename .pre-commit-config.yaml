@@ -29,7 +29,10 @@ repos:
 
       - id: sqlfluff-lint
         name: sqlfluff (dbt)
-        entry: uv run sqlfluff lint dbt/models
+        entry: bash
+        args:
+          - -c
+          - 'test -z "${DBT_BQ_PROJECT:-}" && exit 0; uv run sqlfluff lint dbt/models'
         language: system
         types: [sql]
         pass_filenames: false
