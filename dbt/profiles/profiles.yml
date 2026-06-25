@@ -4,7 +4,7 @@ wcy:
     dev:
       type: bigquery
       method: oauth
-      project: "{{ env_var('DBT_BQ_PROJECT') }}"
+      project: "{{ env_var('DBT_BQ_PROJECT', 'placeholder') }}"
       dataset: "{{ env_var('DBT_STAGING_DATASET', 'staging') }}"
       location: "{{ env_var('DBT_BQ_LOCATION', 'US') }}"
       threads: 4

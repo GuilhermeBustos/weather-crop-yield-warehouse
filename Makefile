@@ -2,9 +2,12 @@
 UV := uv
 TF := terraform
 TF_DIR := infra/terraform
+DBT_PROFILES_DIR := dbt/profiles
+export DBT_PROFILES_DIR
 
 .PHONY: help install lint fmt sql-lint test pre-commit \
 	seed ingest-weather ingest-yield \
+	dbt-deps dbt-seed dbt-build dbt-test dbt-docs \
 	tf-init tf-fmt tf-validate tf-plan tf-apply tf-destroy
 
 help: ## Show available targets
@@ -25,14 +28,29 @@ fmt: ## Auto-fix + format Python (ruff)
 	$(UV) run ruff check --fix .
 	$(UV) run ruff format .
 
-sql-lint: ## Lint SQL (sqlfluff) — activates once dbt models exist (Phase 3)
-	$(UV) run sqlfluff lint dbt/models || true
+sql-lint: ## Lint SQL with the dbt templater (sqlfluff)
+	$(UV) run sqlfluff lint dbt/models
 
 test: ## Run unit tests (pytest)
 	$(UV) run pytest
 
 pre-commit: ## Run all pre-commit hooks against the whole tree
 	$(UV) run pre-commit run --all-files
+
+dbt-deps: ## Install dbt packages declared in packages.yml
+	$(UV) run dbt deps --project-dir dbt --profiles-dir dbt/profiles
+
+dbt-seed: ## Load seed CSVs into BigQuery (county_centroids)
+	$(UV) run dbt seed --project-dir dbt --profiles-dir dbt/profiles
+
+dbt-build: ## Run all dbt models + tests (full build)
+	$(UV) run dbt build --project-dir dbt --profiles-dir dbt/profiles
+
+dbt-test: ## Run dbt tests only (no model rebuild)
+	$(UV) run dbt test --project-dir dbt --profiles-dir dbt/profiles
+
+dbt-docs: ## Generate dbt docs (HTML + manifest)
+	$(UV) run dbt docs generate --project-dir dbt --profiles-dir dbt/profiles
 
 seed: ## Build the county-centroid seed CSV (dbt/seeds/county_centroids.csv)
 	$(UV) run python -m wcy_ingestion seed

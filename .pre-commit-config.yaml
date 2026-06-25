@@ -1,6 +1,3 @@
-# Phase 0 baseline. pre-commit owns all git hooks (pre-commit + commit-msg).
-# SQL linting (sqlfluff with the dbt templater) is wired in at Phase 3 once
-# dbt models exist; until then use `make lint` for Python.
 default_install_hook_types: [pre-commit, commit-msg]
 
 repos:
@@ -29,3 +26,10 @@ repos:
         entry: .githooks/commit-msg
         language: script
         stages: [commit-msg]
+
+      - id: sqlfluff-lint
+        name: sqlfluff (dbt)
+        entry: uv run sqlfluff lint dbt/models
+        language: system
+        types: [sql]
+        pass_filenames: false
