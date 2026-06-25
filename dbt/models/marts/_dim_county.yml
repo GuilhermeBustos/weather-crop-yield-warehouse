@@ -1,0 +1,31 @@
+version: 2
+
+models:
+  - name: dim_county
+    description: >
+      County dimension sourced from the county_centroids seed. One row per
+      county in the 5 Corn Belt states in scope (IA, IL, IN, MN, NE).
+      Grain fips. Used as the primary FK target for fact_weather_daily,
+      fact_crop_yield (COUNTY rows only), and weather_yield_analysis.
+    columns:
+      - name: fips
+        description: 5-digit county FIPS code (STRING). Primary key.
+        data_tests:
+          - not_null
+          - unique
+      - name: state_alpha
+        description: 2-letter state abbreviation (IA, IL, IN, MN, NE).
+        data_tests:
+          - not_null
+      - name: county_name
+        description: Full county name including the word "County".
+        data_tests:
+          - not_null
+      - name: lat
+        description: Centroid latitude in decimal degrees.
+        data_tests:
+          - not_null
+      - name: lon
+        description: Centroid longitude in decimal degrees.
+        data_tests:
+          - not_null
