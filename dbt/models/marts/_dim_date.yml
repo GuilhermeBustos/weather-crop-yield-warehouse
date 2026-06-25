@@ -1,0 +1,38 @@
+version: 2
+
+models:
+  - name: dim_date
+    description: >
+      Calendar dimension covering the full 2025 year (2025-01-01 to 2025-12-31).
+      Generated from GENERATE_DATE_ARRAY — no source table. The is_growing_season
+      flag uses the same growing_season_start / growing_season_end dbt vars as
+      int_weather_growing_season (default Apr 1 / Oct 31). Grain date.
+    columns:
+      - name: date
+        description: Calendar date. Primary key.
+        data_tests:
+          - not_null
+          - unique
+      - name: year
+        description: Calendar year (2025).
+        data_tests:
+          - not_null
+      - name: month
+        description: Calendar month (1–12).
+        data_tests:
+          - not_null
+      - name: day
+        description: Day of the month (1–31).
+        data_tests:
+          - not_null
+      - name: day_of_year
+        description: Day of the year (1–366).
+        data_tests:
+          - not_null
+      - name: is_growing_season
+        description: >
+          TRUE when the date falls within the growing season window defined by
+          the growing_season_start and growing_season_end dbt vars (Apr 1 –
+          Oct 31 by default). FALSE otherwise.
+        data_tests:
+          - not_null
