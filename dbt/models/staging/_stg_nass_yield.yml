@@ -3,29 +3,21 @@ version: 2
 models:
   - name: stg_nass_yield
     description: >
-      Grain-yield-only view over raw.nass_yield. Keeps BU / ACRE grain yields
-      for corn and soybeans, builds 5-digit FIPS from state_fips_code and
+      County-only grain-yield view over raw.nass_yield. Keeps BU / ACRE grain
+      yields for corn and soybeans at county level (STATE rows excluded via
+      county_code != '000'), builds 5-digit FIPS from state_fips_code and
       county_code, parses value_raw to numeric (suppression flags become NULL),
       standardises commodity to a lowercase enum, and computes yield_value_t_ha
-      via the bu_acre_to_t_ha macro. agg_level is derived from county_code
-      (000 = STATE, otherwise COUNTY).
-      Grain (agg_level, fips, commodity, year); for COUNTY rows the grain
-      is (fips, commodity, year).
+      via the bu_acre_to_t_ha macro. Grain is (fips, commodity, year).
     data_tests:
       - dbt_utils.unique_combination_of_columns:
           arguments:
-            combination_of_columns: [agg_level, fips, commodity, year]
-      - dbt_utils.unique_combination_of_columns:
-          arguments:
             combination_of_columns: [fips, commodity, year]
-          config:
-            where: "agg_level = 'COUNTY'"
     columns:
       - name: fips
         description: >
           5-digit county FIPS code constructed as LPAD(state_fips_code, 2)
-          || LPAD(county_code, 3). For STATE rows county_code is 000 so
-          fips is e.g. 17000 for Illinois.
+          || LPAD(county_code, 3).
         data_tests:
           - not_null
       - name: commodity
@@ -35,15 +27,6 @@ models:
           - accepted_values:
               arguments:
                 values: [corn, soybeans]
-      - name: agg_level
-        description: >
-          Aggregation level derived from county_code: STATE when county_code
-          is 000, COUNTY otherwise.
-        data_tests:
-          - not_null
-          - accepted_values:
-              arguments:
-                values: [COUNTY, STATE]
       - name: state_alpha
         description: 2-letter state abbreviation.
         data_tests:

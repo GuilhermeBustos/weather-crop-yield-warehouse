@@ -8,13 +8,13 @@ filtered AS (
     WHERE
         statisticcat_desc = 'YIELD'
         AND unit_desc = 'BU / ACRE'
+        AND county_code != '000'
 ),
 
 parsed AS (
     SELECT
         state_alpha,
         year,
-        agg_level_desc AS agg_level,
         unit_desc AS unit,
         _ingested_at,
         LPAD(state_fips_code, 2, '0') || LPAD(county_code, 3, '0') AS fips,
@@ -26,7 +26,6 @@ parsed AS (
 SELECT
     fips,
     commodity,
-    agg_level,
     state_alpha,
     year,
     unit,
