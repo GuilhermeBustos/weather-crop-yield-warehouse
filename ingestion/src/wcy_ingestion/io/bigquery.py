@@ -22,6 +22,7 @@ _NASS_SCHEMA = [
     bigquery.SchemaField("county_name", "STRING"),
     bigquery.SchemaField("commodity_desc", "STRING"),
     bigquery.SchemaField("statisticcat_desc", "STRING"),
+    bigquery.SchemaField("agg_level_desc", "STRING"),
     bigquery.SchemaField("short_desc", "STRING"),
     bigquery.SchemaField("unit_desc", "STRING"),
     bigquery.SchemaField("year", "INTEGER"),

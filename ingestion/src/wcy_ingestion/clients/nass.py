@@ -14,6 +14,7 @@ _KEEP = frozenset(
         "county_name",
         "commodity_desc",
         "statisticcat_desc",
+        "agg_level_desc",
         "short_desc",
         "unit_desc",
     }
