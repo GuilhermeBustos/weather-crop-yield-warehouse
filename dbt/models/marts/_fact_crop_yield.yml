@@ -1,0 +1,60 @@
+version: 2
+
+models:
+  - name: fact_crop_yield
+    description: >
+      County-level crop yield fact table. One row per (fips, commodity, year).
+      Sourced from stg_nass_yield, which filters to BU / ACRE grain yields for
+      corn and soybeans at county level only (STATE agg-level rows are excluded
+      because county_code = '000' produces no matching centroid in dim_county and
+      would violate the unique grain). State-level aggregates can be derived by
+      grouping this table on dim_county.state_alpha. Partitioned by year,
+      clustered by state_alpha and commodity.
+    data_tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns: [fips, commodity, year]
+    columns:
+      - name: fips
+        description: >
+          5-digit county FIPS code. Foreign key to dim_county.
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_county')
+                field: fips
+      - name: commodity
+        description: Lowercase commodity enum (corn, soybeans).
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [corn, soybeans]
+      - name: state_alpha
+        description: >
+          2-letter state abbreviation. Use this column to aggregate county rows
+          to state-level totals instead of relying on a separate STATE agg-level
+          source.
+        data_tests:
+          - not_null
+      - name: year
+        description: Crop year (integer). Partition key.
+        data_tests:
+          - not_null
+      - name: yield_value
+        description: >
+          Grain yield in BU / ACRE. NULL when the NASS source value was a
+          suppression flag such as (D), (Z), or (NA).
+      - name: yield_value_t_ha
+        description: >
+          Yield in tonnes per hectare (corn x 0.0627677, soybeans x 0.0672511).
+          NULL when yield_value is NULL.
+      - name: unit
+        description: Unit of measure; always BU / ACRE in this model.
+        data_tests:
+          - not_null
+      - name: _ingested_at
+        description: UTC timestamp of the ingestion run that wrote the source row.
+        data_tests:
+          - not_null
