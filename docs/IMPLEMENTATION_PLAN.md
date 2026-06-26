@@ -449,3 +449,64 @@ Use this section as a lightweight decision log (ADR-lite). Seed entries:
   `agg_level_desc ∈ {COUNTY, STATE}`, so `raw.nass_yield` holds only county and
   state yields — AG DISTRICT / REGION / NATIONAL rows are excluded at the source,
   matching the slice the Phase 3 mart joins on.
+
+### Phase 3 (Transformation / dbt) decisions
+
+- **dbt-on-fixed-datasets.** Models write to the **existing** Terraform datasets
+  (`staging`, `marts`) via a `generate_schema_name` override that returns the
+  configured `+schema` **verbatim** — no `<target>_<schema>` prefixing. Every
+  project/dataset id comes from `env_var()` (`DBT_BQ_PROJECT`, `DBT_RAW_DATASET`,
+  …); `profiles.yml` carries no secrets and no hardcoded ids. Local auth is ADC /
+  `oauth`; the CI/Composer service-account target is wired later (Phases 4/6).
+  `dbt-bigquery` and the `sqlfluff` dbt templater are pinned into the root `uv`
+  dev deps; `make sql-lint` lints real models through the dbt templater (no longer
+  a `|| true` placeholder) and runs as a pre-commit hook.
+- **County-only grain (revised from the Phase 3 spec).** The spec/tasks originally
+  kept **both COUNTY and STATE** NASS rows in `fact_crop_yield` behind an
+  `agg_level` column. In practice the STATE rows (`county_code = '000'`) and the
+  NASS "other-county" district aggregates (`county_code = '998'`) have **no county
+  centroid**, no weather to join, and broke both the `(fips, commodity, year)`
+  unique grain and the `fips → dim_county` relationship test. Decision:
+  `stg_nass_yield` keeps **real county rows only**
+  (`county_code NOT IN ('000','998','')`), drops `agg_level`, and
+  `fact_crop_yield` / `weather_yield_analysis` are **county-grain throughout**.
+  State-level numbers are obtained by aggregating on `dim_county.state_alpha`, not
+  by carrying a separate agg level. This **supersedes** the COUNTY+STATE /
+  `agg_level` wording still present in `.specs/.../phase-3-transformation`
+  (`DATA_MODEL.md` already documents the county `(fips, commodity, year)` grain).
+- **Yield grain = grain yield in `BU / ACRE`.** `stg_nass_yield` filters on
+  `statisticcat_desc = 'YIELD'` **and** `unit_desc = 'BU / ACRE'` (not on
+  `short_desc`), so silage / non-bu·acre items drop and a NASS wording change
+  can't silently lose rows. `value_raw` is parsed by stripping thousands
+  separators and `SAFE_CAST`-ing to FLOAT64, which maps suppression flags
+  (`(D)`, `(Z)`, `(NA)`) to NULL rather than failing the load.
+- **t/ha conversion in one macro, computed once.** `bu_acre_to_t_ha(yield,
+  commodity)` applies the crop-specific factor (corn ×`0.0627677`, soybeans
+  ×`0.0672511` = `bushel_lb × 0.45359237 ÷ 1000 ÷ 0.40468564`; 56 / 60 lb),
+  returning NULL for any unknown commodity so a new crop fails loudly rather than
+  mis-converting. Computed **once** in `stg_nass_yield` and selected forward
+  through `fact_crop_yield` and `weather_yield_analysis`;
+  `dim_commodity.bushel_weight_lb` records the physical constant the factor
+  derives from.
+- **`fact_weather_daily` incremental from day one.** Materialized `incremental`
+  with `insert_overwrite`, partitioned by `date`, clustered by `fips`, unique key
+  `(fips, date)`, guarded by an `{% if is_incremental() %}` `date >= max(date)`
+  predicate. Verified: a re-run takes the partition-merge path (build `__dbt_tmp`
+  → `merge … when not matched then insert`), **not** `create or replace table` —
+  demonstrating the pattern even though the single 2025 window would also fit a
+  plain table.
+- **Structural tests now, plausibility in Phase 5.** Phase 3 ships the
+  **structural** suite that defines correctness — grain `unique` /
+  `dbt_utils.unique_combination_of_columns`, `not_null`, `relationships`
+  (`fips → dim_county`, `commodity → dim_commodity`), `accepted_values`
+  (`commodity ∈ {corn, soybeans}`) — plus full model/column docs. Range /
+  plausibility singular tests, `dbt_expectations`, `dbt source freshness`, and
+  bronze→raw→staging reconciliation are deferred to **Phase 5**, mirroring how
+  Phase 2 deferred its DQ suite.
+- **Verification (2025 slice).** `dbt build` green — 9 models + 1 seed + 72
+  structural tests, all pass. `weather_yield_analysis` is **607** county ×
+  commodity rows, **unique on `(fips, commodity, year)`**, county-grain only:
+  corn averages ≈ **200 bu/acre** (≈ 12.5 t/ha), soybeans ≈ **59 bu/acre**
+  (≈ 4.0 t/ha) — both agronomically sane for the 2025 Corn Belt. `make lint`
+  (ruff) and `make sql-lint` (sqlfluff, dbt templater) are green; `dbt docs
+  generate` renders the lineage graph.
