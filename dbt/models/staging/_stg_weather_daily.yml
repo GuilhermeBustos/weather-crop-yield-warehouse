@@ -36,8 +36,12 @@ models:
           - not_null
       - name: et0_fao_evapotranspiration
         description: Reference evapotranspiration (FAO-56 Penman-Monteith) in mm.
+        data_tests:
+          - not_null
       - name: solar_radiation_mjm2
         description: Surface shortwave radiation sum in MJ m⁻² (shortwave_radiation_sum).
+        data_tests:
+          - not_null
       - name: wind_speed_kmh
         description: Maximum wind speed at 10 m in km h⁻¹ (windspeed_10m_max).
       - name: _ingested_at
