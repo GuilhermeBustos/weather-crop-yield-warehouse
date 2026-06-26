@@ -39,6 +39,7 @@ def test_fetch_projects_record_when_under_gate():
             "county_name": "ADAIR",
             "commodity_desc": "CORN",
             "statisticcat_desc": "YIELD",
+            "agg_level_desc": "",
             "short_desc": "CORN, GRAIN - YIELD, MEASURED IN BU / ACRE",
             "unit_desc": "BU / ACRE",
             "year": 2025,  # cast to int
