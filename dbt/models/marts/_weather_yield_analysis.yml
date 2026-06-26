@@ -1,0 +1,83 @@
+version: 2
+
+models:
+  - name: weather_yield_analysis
+    description: >
+      Headline analysis mart. One row per (fips, commodity, year) joining
+      county-level crop yields to growing-season weather features and county
+      metadata. Built by inner-joining fact_crop_yield to
+      int_weather_growing_season on (fips, year) and dim_county on fips, so
+      only counties with both yield and weather observations are included.
+      Partitioned by year, clustered by state_alpha and commodity.
+      Grain (fips, commodity, year).
+    data_tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns: [fips, commodity, year]
+    columns:
+      - name: fips
+        description: 5-digit county FIPS code. Foreign key to dim_county.
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_county')
+                field: fips
+      - name: state_alpha
+        description: 2-letter state abbreviation from dim_county.
+        data_tests:
+          - not_null
+      - name: county_name
+        description: Full county name from dim_county.
+        data_tests:
+          - not_null
+      - name: commodity
+        description: Lowercase commodity enum (corn, soybeans). Foreign key to dim_commodity.
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_commodity')
+                field: commodity
+      - name: year
+        description: Crop year (integer). Partition key.
+        data_tests:
+          - not_null
+      - name: yield_value
+        description: Grain yield in BU / ACRE. NULL for suppressed NASS values.
+      - name: yield_value_t_ha
+        description: >
+          Yield in tonnes per hectare (corn x 0.0627677, soybeans x 0.0672511).
+          NULL when yield_value is NULL.
+      - name: unit
+        description: Unit of measure; always BU / ACRE in this model.
+        data_tests:
+          - not_null
+      - name: gdd
+        description: >
+          Growing degree days accumulated over the season (base 10 °C).
+          Computed as sum of max(0, (tmax + tmin) / 2 - 10) per day.
+        data_tests:
+          - not_null
+      - name: precip_total_mm
+        description: Total precipitation in mm over the growing season.
+        data_tests:
+          - not_null
+      - name: heat_stress_days
+        description: Count of days with maximum temperature above 30 °C.
+        data_tests:
+          - not_null
+      - name: dry_days
+        description: Count of days with precipitation below 1 mm.
+        data_tests:
+          - not_null
+      - name: et0_total_mm
+        description: >
+          Total reference evapotranspiration (FAO-56 Penman-Monteith) in mm
+          over the growing season.
+        data_tests:
+          - not_null
+      - name: tmax_mean
+        description: Mean daily maximum temperature in °C over the growing season.
+        data_tests:
+          - not_null
