@@ -9,7 +9,7 @@ resource "google_composer_environment" "main" {
       image_version = var.composer_image_version
 
       pypi_packages = {
-        "astronomer-cosmos" = ">=1.5.0,<2.0.0"
+        "astronomer-cosmos" = ">=1.8.0,<2.0.0"
         "dbt-bigquery"      = ">=1.8.0,<2.0.0"
         "pydantic-settings" = ">=2.7"
         "httpx"             = ">=0.28"

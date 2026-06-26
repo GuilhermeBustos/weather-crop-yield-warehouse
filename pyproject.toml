@@ -17,6 +17,12 @@ dev = [
     "wcy-ingestion",
     "dbt-bigquery>=1.8.0,<2.0.0",
 ]
+# Local DAG authoring / validation. Pinned to the Composer image's Airflow version
+# (composer-3-airflow-3.1.7-build.11) so local parse results match Composer.
+airflow = [
+    "apache-airflow[standard]==3.1.7",
+    "astronomer-cosmos>=1.8.0,<2.0.0",
+]
 
 [tool.uv]
 package = false
