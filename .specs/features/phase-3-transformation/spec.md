@@ -18,7 +18,7 @@ Companion: [docs/IMPLEMENTATION_PLAN.md](../../../docs/IMPLEMENTATION_PLAN.md) �
   corn + soy, 2025, `value_raw` kept as STRING (suppression flags intact),
   partitioned by `year`, clustered by `state_alpha, commodity_desc`.
 - `dbt/seeds/county_centroids.csv` — `fips,state_alpha,county_name,lat,lon` for the
-  5 states (474 rows), already committed by Phase 2.
+  5 states (473 rows), already committed by Phase 2.
 
 ## Scope decisions (locked)
 
@@ -112,7 +112,7 @@ before planning:
 - **FR-4** `county_centroids.csv` is configured as a dbt **seed** with **explicit
   column types** — `fips` typed **STRING** so 5-digit leading zeros survive (note: the
   5 states are all FIPS ≥ 17, but the contract must not depend on that). Loads to the
-  `staging` (or `marts`) dataset and feeds `dim_county`. **Done:** `dbt seed` loads 474
+  `staging` (or `marts`) dataset and feeds `dim_county`. **Done:** `dbt seed` loads 473
   rows; `fips` is STRING, never coerced to INT.
 
 ### Staging (views)

@@ -49,7 +49,7 @@ dbt/
 │   ├── generate_schema_name.sql  # maps +schema to literal BQ dataset
 │   └── bu_acre_to_t_ha.sql       # unit-conversion macro
 ├── seeds/
-│   └── county_centroids.csv      # 474 rows; fips typed STRING
+│   └── county_centroids.csv      # 473 rows; fips typed STRING
 └── models/
     ├── staging/             # views; dedupe + type raw tables
     ├── intermediate/        # views; season-level aggregations

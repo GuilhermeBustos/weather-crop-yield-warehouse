@@ -4,7 +4,7 @@ seeds:
   - name: county_centroids
     description: >
       County centroid coordinates for the 5 Corn Belt states in scope
-      (IA, IL, IN, MN, NE). 474 rows. Used to build dim_county and to
+      (IA, IL, IN, MN, NE). 473 rows. Used to build dim_county and to
       join weather data (sampled at centroids) to crop yield records.
     config:
       column_types:
