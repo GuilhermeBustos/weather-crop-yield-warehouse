@@ -25,14 +25,17 @@ manual GCP step, mirroring how Phase 3 deferred the live `dbt build` to bootstra
   (`DBT_BQ_PROJECT`, `DBT_RAW_DATASET`, `DBT_STAGING_DATASET`, `DBT_MARTS_DATASET`,
   `DBT_BQ_LOCATION`, `DBT_PROFILES_DIR`, `WCY_*` config). The **NASS key stays in
   Secret Manager** and is fetched at runtime by the existing `wcy_ingestion`
-  `io/secrets.py` via the node/pipeline SA. Pin the image version to a value from
-  `gcloud composer images list --location=us-central1` — the variable has no default
-  on purpose (avoids pinning a stale image).
-- **T2 — version pinning.** Composer bundles a specific Airflow version; local
-  authoring/validation must match it or DAGs that parse locally can still break in
-  Composer. Pin `apache-airflow==<image's version>` against the official
-  constraints file (`constraints-<airflow>-<py>.txt`), and pick the `astronomer-cosmos`
-  release that supports both that Airflow and `dbt-bigquery`.
+  `io/secrets.py` via the node/pipeline SA. Image is pinned to
+  `composer-3-airflow-3.1.7-build.11` (Airflow 3 ⇒ Composer 3); list images via the
+  Composer REST API `imageVersions` endpoint (the `images` subcommand is not on the
+  GA `gcloud composer` surface).
+- **T2 — version pinning (Airflow 3 check).** Composer bundles a specific Airflow
+  version (here **Airflow 3.1.7**); local authoring/validation must match it via the
+  official constraints file (`constraints-3.1.7-<py>.txt`) or DAGs that parse locally
+  can still break in Composer. **astronomer-cosmos check:** confirm the cosmos release
+  supports **Airflow 3** *and* `dbt-bigquery` — the current `composer.tf`
+  `pypi_packages` lower bound (`>=1.5.0`) predates Airflow 3 support and must be
+  raised here and in `composer.tf` to the verified Airflow-3-compatible version.
 - **T3 — `wcy_ingestion` in Composer (the packaging wrinkle).** The package is a
   local workspace member, **not on PyPI**, so it can't be a plain `pypi_packages`
   entry. Preferred path: **sync its source into the env bucket** (`dags/` so it's
@@ -59,8 +62,9 @@ manual GCP step, mirroring how Phase 3 deferred the live `dbt build` to bootstra
 
 ## Manual bootstrap (user — outside the code, needs GCP)
 
-1. `gcloud composer images list --location=us-central1` → set `composer_image_version`
-   in `dev.tfvars`; `gcloud services enable composer.googleapis.com`.
+1. `gcloud services enable composer.googleapis.com`; confirm/refresh
+   `composer_image_version` in `dev.tfvars` (pinned to an Airflow 3 image) — list
+   images via the Composer REST API `imageVersions` endpoint.
 2. `make composer-up` (`terraform apply -var enable_composer=true`) — provisions the
    SMALL env (~25 min).
 3. `make composer-deploy` — sync DAGs + the `dbt/` project + `wcy_ingestion` source to

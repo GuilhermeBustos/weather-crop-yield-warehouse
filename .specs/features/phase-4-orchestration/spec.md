@@ -1,7 +1,7 @@
 # Phase 4 — Orchestration (Airflow / Cloud Composer)
 
 Schedule, observe, and backfill the existing extract → load → transform pipeline
-on **Cloud Composer 2** (managed Airflow). Ingestion (`wcy_ingestion`) and the
+on **Cloud Composer 3** (managed Airflow 3). Ingestion (`wcy_ingestion`) and the
 `wcy` dbt project already work standalone; Phase 4 wires them into Airflow DAGs
 so the whole chain runs on a trigger, coordinates by data dependency, and can be
 backfilled over a parameterized window. The headline deliverable is a green
@@ -38,7 +38,7 @@ Resolved with the user before planning:
 
 - **Provision Composer on-demand, then tear it down.** Set a verified
   `composer_image_version`, flip `enable_composer = true`, and `terraform apply` the
-  **Composer 2, SMALL** environment on the existing `pipeline` SA to prove the
+  **Composer 3, SMALL** environment on the existing `pipeline` SA to prove the
   pipeline end-to-end — then **`terraform destroy`** it. The environment is
   **ephemeral, not a running service**: Composer has no free tier (smallest env ≈
   **$300+/month while up**), so a clean, complete teardown is a **first-class
@@ -48,7 +48,10 @@ Resolved with the user before planning:
   everything).
 - **dbt via astronomer-cosmos.** The `transform_dbt` DAG renders the dbt project as
   **native Airflow tasks** (one task per model + test) for per-node observability and
-  retries, rather than an opaque `dbt build` BashOperator.
+  retries, rather than an opaque `dbt build` BashOperator. **Check:** the cosmos
+  version must support **Airflow 3** (the `composer-3-airflow-3.x` image) — the
+  `composer.tf` `pypi_packages` lower bound and the local pin (T2) must be raised to
+  an Airflow-3-compatible cosmos release; verified in T2/T7.
 - **Three dataset-coordinated DAGs.** `ingest_weather` and `ingest_yield` each
   publish an **Airflow Dataset** on success; `transform_dbt` is **scheduled on those
   datasets** so it runs only after both ingestions update — no manual ordering.
@@ -60,8 +63,9 @@ Resolved with the user before planning:
 
 Secondary defaults (resolvable in design, not user-blocking):
 
-- **Composer 2** (matches the existing `composer.tf`/variables); Composer 3 noted as
-  a later cost option. Environment size **SMALL**.
+- **Composer 3 / Airflow 3**, image `composer-3-airflow-3.1.7-build.11` (the only
+  Airflow 3 image currently published; Airflow 3 requires Composer 3). Environment
+  size **SMALL**.
 - **Ingestion runs in-process** as Airflow Python tasks calling the existing
   `weather.run` / `nass_yield.run` entrypoints. The `wcy_ingestion` source is made
   importable in Composer (synced to the bucket + third-party deps via
@@ -75,7 +79,7 @@ Secondary defaults (resolvable in design, not user-blocking):
 
 ## In scope
 
-- Terraform: enable + apply the Composer 2 environment (image version, size,
+- Terraform: enable + apply the Composer 3 environment (image version, size,
   `pypi_packages`, Airflow env vars for `DBT_*` / `WCY_*` config).
 - Deployment glue: sync DAGs and the `dbt/` project into the Composer bucket;
   `make` targets for deploy + local DAG validation; `airflow/README.md`.
@@ -93,17 +97,18 @@ Secondary defaults (resolvable in design, not user-blocking):
 - CI/CD of DAGs (lint/deploy on push, Slim CI) — **Phase 6**.
 - Cost/monitoring dashboards & budget alerts beyond the teardown note — **Phase 7**.
 - Real multi-year backfill *data* (the slice stays 2025); Slack notifications;
-  Composer 3 migration; KubernetesPodOperator/image-based execution.
+  KubernetesPodOperator/image-based execution.
 
 ## Requirements
 
 ### Infrastructure (Composer)
 
-- **FR-1** Provision the Composer 2 environment via Terraform: a verified
-  `composer_image_version` (from `gcloud composer images list`), `enable_composer =
-  true` in `dev.tfvars`, `environment_size = ENVIRONMENT_SIZE_SMALL`, node SA =
-  `pipeline`. **Done:** `terraform apply` brings the environment up and the Airflow
-  UI is reachable.
+- **FR-1** Provision the Composer 3 environment via Terraform: a verified
+  `composer_image_version` (Airflow 3 ⇒ Composer 3; list via the Composer REST API
+  `imageVersions` endpoint, or `gcloud composer images list` on a beta-enabled SDK),
+  `enable_composer = true` in `dev.tfvars`, `environment_size =
+  ENVIRONMENT_SIZE_SMALL`, node SA = `pipeline`. **Done:** `terraform apply` brings
+  the environment up and the Airflow UI is reachable.
 - **FR-2** The environment installs the runtime deps the DAGs need via
   `software_config.pypi_packages` — `astronomer-cosmos`, `dbt-bigquery`, and the
   `wcy_ingestion` third-party deps not already on the image (pydantic-settings,
@@ -176,7 +181,7 @@ Secondary defaults (resolvable in design, not user-blocking):
 
 ## Verification (DoD)
 
-- **V-1** `terraform apply` with `enable_composer = true` provisions the Composer 2
+- **V-1** `terraform apply` with `enable_composer = true` provisions the Composer 3
   SMALL environment; the Airflow UI loads; the required `pypi_packages` are present.
 - **V-2** All four DAGs (`ingest_weather`, `ingest_yield`, `transform_dbt`,
   `backfill`) parse with **zero import errors** — verified locally and in Composer.
