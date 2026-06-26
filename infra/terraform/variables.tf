@@ -40,27 +40,29 @@ variable "bucket_force_destroy" {
 
 # ---- BigQuery ----------------------------------------------------------------
 
-variable "datasets" {
-  description = "BigQuery datasets to create, keyed by dataset id."
-  type = map(object({
-    description                   = string
-    default_table_expiration_days = optional(number)
-  }))
-  default = {
-    raw = {
-      description = "Bronze GCS files loaded into BigQuery, lightly typed."
-    }
-    staging = {
-      description = "dbt staging views: renamed, cast, deduplicated."
-    }
-    marts = {
-      description = "dbt marts: modeled facts and dimensions for analysis."
-    }
-    dbt_ci = {
-      description                   = "Ephemeral dbt CI builds; tables auto-expire."
-      default_table_expiration_days = 7
-    }
-  }
+# Dataset ids: name the BigQuery datasets and feed the dbt/Composer env vars.
+variable "raw_dataset" {
+  description = "BigQuery dataset id for the raw (loaded bronze) layer."
+  type        = string
+  default     = "raw"
+}
+
+variable "staging_dataset" {
+  description = "BigQuery dataset id for the dbt staging layer."
+  type        = string
+  default     = "staging"
+}
+
+variable "marts_dataset" {
+  description = "BigQuery dataset id for the dbt marts layer."
+  type        = string
+  default     = "marts"
+}
+
+variable "dbt_ci_dataset" {
+  description = "BigQuery dataset id for ephemeral dbt CI builds (tables auto-expire)."
+  type        = string
+  default     = "dbt_ci"
 }
 
 variable "dataset_force_destroy" {
@@ -80,25 +82,31 @@ variable "pipeline_sa_account_id" {
 # ---- Composer (deferred — see composer.tf) -----------------------------------
 
 variable "enable_composer" {
-  description = "Provision the Cloud Composer 2 environment. Left false until Phase 4 — Composer is the largest fixed cost and runs 24/7."
+  description = "Provision the Cloud Composer environment. Left false until needed — Composer is the largest fixed cost and runs 24/7; Phase 4 keeps it ephemeral."
   type        = bool
   default     = false
 }
 
 variable "composer_env_name" {
-  description = "Name of the Composer 2 environment."
+  description = "Name of the Composer environment."
   type        = string
   default     = "wcy-composer"
 }
 
 variable "composer_image_version" {
-  description = "Composer 2 image, e.g. 'composer-2.x.x-airflow-2.x.x'. REQUIRED before enabling Composer — verify with `gcloud composer images list --location=<region>`. No default to avoid pinning a stale/invalid image."
+  description = "Composer image, e.g. 'composer-3-airflow-3.x.x-build.x' (Airflow 3 requires Composer 3). REQUIRED before enabling Composer — list via the Composer REST API (imageVersions endpoint) or `gcloud composer images list --location=<region>` on an up-to-date SDK. No default to avoid pinning a stale/invalid image."
   type        = string
   default     = null
 }
 
 variable "composer_environment_size" {
-  description = "Composer 2 environment size: ENVIRONMENT_SIZE_SMALL | ENVIRONMENT_SIZE_MEDIUM | ENVIRONMENT_SIZE_LARGE."
+  description = "Composer environment size: ENVIRONMENT_SIZE_SMALL | ENVIRONMENT_SIZE_MEDIUM | ENVIRONMENT_SIZE_LARGE."
   type        = string
   default     = "ENVIRONMENT_SIZE_SMALL"
+}
+
+variable "nass_secret_id" {
+  description = "Secret Manager secret *id* holding the NASS API key; passed to Composer as WCY_NASS_SECRET_ID."
+  type        = string
+  default     = "nass-api-key"
 }

@@ -7,10 +7,19 @@ project_id = "your-gcp-project-id"
 region      = "us-central1"
 bq_location = "US"
 
+# Warehouse dataset ids (also passed to Composer/dbt). Defaults shown; override here.
+raw_dataset     = "raw"
+staging_dataset = "staging"
+marts_dataset   = "marts"
+dbt_ci_dataset  = "dbt_ci"
+
 # Dev: allow clean teardown so `terraform destroy` works end-to-end.
 bucket_force_destroy  = true
 dataset_force_destroy = true
 
-# Orchestration deferred to Phase 4. Flip to true only after setting a verified
-# composer_image_version (gcloud composer images list --location=us-central1).
-enable_composer = false
+# Orchestration (Phase 4). Composer is ephemeral: provision only to demo the
+# pipeline, then tear down. Airflow 3 requires Composer 3. List images via the
+# Composer REST API imageVersions endpoint (or `gcloud composer images list` on an
+# up-to-date SDK). Pinned to an Airflow 3 image; flip enable_composer at bootstrap.
+composer_image_version = "composer-3-airflow-3.1.7-build.11"
+enable_composer        = false
