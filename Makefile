@@ -13,7 +13,7 @@ GCP_REGION   := us-central1
 	seed ingest-weather ingest-yield \
 	dbt-deps dbt-seed dbt-build dbt-test dbt-docs \
 	tf-init tf-fmt tf-validate tf-plan tf-apply tf-destroy \
-	dags-validate composer-deploy composer-up composer-down
+	test-dags dags-validate composer-deploy composer-up composer-down
 
 help: ## Show available targets
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | \
@@ -85,6 +85,9 @@ tf-destroy: ## Destroy the dev environment
 	$(TF) -chdir=$(TF_DIR) destroy -var-file=dev.tfvars
 
 # ---- Composer / Airflow ------------------------------------------------------
+
+test-dags: ## Run DAG unit tests (requires airflow group)
+	$(UV) run --group airflow pytest airflow/dags/tests/
 
 dags-validate: ## Parse all DAGs locally — zero import errors required
 	$(UV) run --group airflow python airflow/validate_dags.py
