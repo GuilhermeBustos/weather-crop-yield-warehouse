@@ -4,11 +4,13 @@ models:
   - name: stg_nass_yield
     description: >
       County-only grain-yield view over raw.nass_yield. Keeps BU / ACRE grain
-      yields for corn and soybeans at county level (STATE rows excluded via
-      county_code != '000'), builds 5-digit FIPS from state_fips_code and
-      county_code, parses value_raw to numeric (suppression flags become NULL),
-      standardises commodity to a lowercase enum, and computes yield_value_t_ha
-      via the bu_acre_to_t_ha macro. Grain is (fips, commodity, year).
+      yields for corn and soybeans at real county level. Excludes non-county
+      NASS codes: county_code 000 (STATE agg rows) and 998 (NASS Other-counties
+      district aggregates that have no centroid or weather data). Builds 5-digit
+      FIPS from state_fips_code and county_code, parses value_raw to numeric
+      (suppression flags become NULL), standardises commodity to a lowercase
+      enum, and computes yield_value_t_ha via the bu_acre_to_t_ha macro.
+      Grain is (fips, commodity, year).
     data_tests:
       - dbt_utils.unique_combination_of_columns:
           arguments:

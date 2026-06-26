@@ -8,7 +8,7 @@ filtered AS (
     WHERE
         statisticcat_desc = 'YIELD'
         AND unit_desc = 'BU / ACRE'
-        AND county_code NOT IN ('000', '')
+        AND county_code NOT IN ('000', '998', '')
 ),
 
 parsed AS (
