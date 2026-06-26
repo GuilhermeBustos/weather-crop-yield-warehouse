@@ -1,14 +1,19 @@
 .DEFAULT_GOAL := help
-UV := uv
-TF := terraform
-TF_DIR := infra/terraform
+UV           := uv
+TF           := terraform
+TF_DIR       := infra/terraform
 DBT_PROFILES_DIR := dbt/profiles
 export DBT_PROFILES_DIR
+
+# Overridable: must match composer_env_name / region in dev.tfvars.
+COMPOSER_ENV := wcy-composer
+GCP_REGION   := us-central1
 
 .PHONY: help install lint fmt sql-lint test pre-commit \
 	seed ingest-weather ingest-yield \
 	dbt-deps dbt-seed dbt-build dbt-test dbt-docs \
-	tf-init tf-fmt tf-validate tf-plan tf-apply tf-destroy
+	tf-init tf-fmt tf-validate tf-plan tf-apply tf-destroy \
+	dags-validate composer-deploy composer-up composer-down
 
 help: ## Show available targets
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | \
@@ -78,3 +83,23 @@ tf-apply: ## Apply the dev environment
 
 tf-destroy: ## Destroy the dev environment
 	$(TF) -chdir=$(TF_DIR) destroy -var-file=dev.tfvars
+
+# ---- Composer / Airflow ------------------------------------------------------
+
+dags-validate: ## Parse all DAGs locally — zero import errors required
+	$(UV) run --group airflow python airflow/validate_dags.py
+
+composer-deploy: ## Sync DAGs, dbt project, and wcy_ingestion source to Composer bucket
+	@set -e; \
+	PREFIX=$$(gcloud composer environments describe $(COMPOSER_ENV) \
+		--location=$(GCP_REGION) --format="value(config.dagGcsPrefix)"); \
+	gcloud storage rsync --recursive --delete-unmatched-destination-objects \
+		airflow/dags/ $$PREFIX/; \
+	gcloud storage rsync --recursive dbt/ $$PREFIX/dbt/; \
+	gcloud storage rsync --recursive ingestion/src/wcy_ingestion/ $$PREFIX/wcy_ingestion/
+
+composer-up: ## Provision Composer 3 (enable_composer=true) — ~25 min
+	$(TF) -chdir=$(TF_DIR) apply -var-file=dev.tfvars -var enable_composer=true
+
+composer-down: ## Soft-destroy Composer only (enable_composer=false); warehouse data kept
+	$(TF) -chdir=$(TF_DIR) apply -var-file=dev.tfvars -var enable_composer=false
