@@ -3,8 +3,12 @@
 import os
 import sys
 import tempfile
+from pathlib import Path
 
 os.environ.setdefault("AIRFLOW_HOME", tempfile.mkdtemp())
+
+# Airflow adds the dags folder to sys.path in Composer; mirror that locally.
+sys.path.insert(0, str(Path(__file__).parent / "dags"))
 
 from airflow.models import DagBag  # noqa: E402
 
