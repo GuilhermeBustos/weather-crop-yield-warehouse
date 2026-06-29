@@ -6,8 +6,10 @@ from datetime import timedelta
 from airflow.sdk import Asset
 
 # Airflow Assets that coordinate ingest → transform scheduling.
-WEATHER_DATASET = Asset("raw.weather_daily")
-YIELD_DATASET = Asset("raw.nass_yield")
+# URI prefix must match the BigQuery dataset id (WCY_RAW_DATASET in Composer).
+_RAW_DATASET = os.environ["WCY_RAW_DATASET"]
+WEATHER_DATASET = Asset(f"{_RAW_DATASET}.weather_daily")
+YIELD_DATASET = Asset(f"{_RAW_DATASET}.nass_yield")
 
 
 def _on_failure_alert(context: dict) -> None:
