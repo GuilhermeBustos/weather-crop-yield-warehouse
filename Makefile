@@ -92,12 +92,14 @@ test-dags: ## Run DAG unit tests (requires airflow group)
 dags-validate: ## Parse all DAGs locally — zero import errors required
 	$(UV) run --group airflow python airflow/validate_dags.py
 
+# First rsync excludes dbt/ + wcy_ingestion/ so --delete-unmatched-destination-objects
+# does not wipe the two subtrees synced into the same dags/ root just below.
 composer-deploy: ## Sync DAGs, dbt project, and wcy_ingestion source to Composer bucket
 	@set -e; \
 	PREFIX=$$(gcloud composer environments describe $(COMPOSER_ENV) \
 		--location=$(GCP_REGION) --format="value(config.dagGcsPrefix)"); \
 	gcloud storage rsync --recursive --delete-unmatched-destination-objects \
-		airflow/dags/ $$PREFIX/; \
+		--exclude='^(dbt|wcy_ingestion)/' airflow/dags/ $$PREFIX/; \
 	gcloud storage rsync --recursive dbt/ $$PREFIX/dbt/; \
 	gcloud storage rsync --recursive ingestion/src/wcy_ingestion/ $$PREFIX/wcy_ingestion/
 
