@@ -17,18 +17,12 @@ vars:
   growing_season_start: '04-01'
   growing_season_end: '10-31'
 
-seeds:
-  wcy:
-    +schema: staging
-
 models:
   wcy:
     staging:
-      +schema: staging
       +materialized: view
     intermediate:
-      +schema: staging
       +materialized: view
     marts:
-      +schema: marts
+      +schema: "{{ env_var('DBT_MARTS_DATASET', 'marts') }}"
       +materialized: table
