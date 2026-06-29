@@ -3,6 +3,7 @@ from unittest.mock import MagicMock, patch
 
 from airflow.sdk import Asset
 from common import (
+    _CENTROIDS_CSV,
     WEATHER_DATASET,
     YIELD_DATASET,
     _on_failure_alert,
@@ -91,7 +92,7 @@ def test_run_weather_calls_pipeline():
     ):
         run_weather()
 
-    mock_run.assert_called_once_with(mock_settings_cls.return_value)
+    mock_run.assert_called_once_with(mock_settings_cls.return_value, centroids_csv=_CENTROIDS_CSV)
 
 
 def test_run_nass_yield_calls_pipeline():

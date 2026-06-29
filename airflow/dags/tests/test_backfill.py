@@ -1,7 +1,7 @@
 from datetime import date
 from unittest.mock import MagicMock, patch
 
-from common import run_nass_yield_year, run_weather_window
+from common import _CENTROIDS_CSV, run_nass_yield_year, run_weather_window
 
 # ---------------------------------------------------------------------------
 # run_weather_window
@@ -20,7 +20,7 @@ def test_run_weather_window_calls_pipeline_with_date_overrides():
     mock_settings_cls.assert_called_once_with(
         start_date=date(2024, 1, 1), end_date=date(2024, 12, 31)
     )
-    mock_run.assert_called_once_with(mock_settings_cls.return_value)
+    mock_run.assert_called_once_with(mock_settings_cls.return_value, centroids_csv=_CENTROIDS_CSV)
 
 
 def test_run_weather_window_parses_iso_dates():

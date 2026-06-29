@@ -21,6 +21,9 @@ PROFILES_DIR = Path(
     )
 )
 DBT_PROJECT_DIR = PROFILES_DIR.parent
+# weather.run's repo-relative default for this seed resolves wrong once wcy_ingestion is
+# synced under dags/ (the src/ level is stripped); anchor it to the dbt project instead.
+_CENTROIDS_CSV = DBT_PROJECT_DIR / "seeds" / "county_centroids.csv"
 
 
 def _on_failure_alert(context: dict) -> None:
@@ -57,7 +60,7 @@ def run_weather() -> None:
     from wcy_ingestion.config import Settings
     from wcy_ingestion.pipelines import weather
 
-    weather.run(Settings())
+    weather.run(Settings(), centroids_csv=_CENTROIDS_CSV)
 
 
 def run_nass_yield() -> None:
@@ -76,7 +79,10 @@ def run_weather_window(start_date: str, end_date: str) -> None:
     from wcy_ingestion.pipelines import weather
 
     weather.run(
-        Settings(start_date=_date.fromisoformat(start_date), end_date=_date.fromisoformat(end_date))
+        Settings(
+            start_date=_date.fromisoformat(start_date), end_date=_date.fromisoformat(end_date)
+        ),
+        centroids_csv=_CENTROIDS_CSV,
     )
 
 
