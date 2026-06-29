@@ -92,16 +92,21 @@ test-dags: ## Run DAG unit tests (requires airflow group)
 dags-validate: ## Parse all DAGs locally — zero import errors required
 	$(UV) run --group airflow python airflow/validate_dags.py
 
-# First rsync excludes dbt/ + wcy_ingestion/ so --delete-unmatched-destination-objects
-# does not wipe the two subtrees synced into the same dags/ root just below.
+# composer-deploy keeps the bucket lean: ship DAG modules, the dbt project (manifest +
+# packages, minus build artifacts/logs/test fixtures), and ingestion source — no bytecode
+# or tests. The dags/ exclude also shields the dbt/ + wcy_ingestion/ subtrees from --delete.
+DEPLOY_DAGS_EXCLUDE := ^(dbt|wcy_ingestion)/|(^|/)(tests|__pycache__)/|\.pyc$$
+DEPLOY_DBT_EXCLUDE  := ^target/(?!manifest\.json$$)|^logs/|(^|/)integration_tests/|(^|/)__pycache__/|\.pyc$$
+DEPLOY_WCY_EXCLUDE  := (^|/)__pycache__/|\.pyc$$
+
 composer-deploy: ## Sync DAGs, dbt project, and wcy_ingestion source to Composer bucket
 	@set -e; \
 	PREFIX=$$(gcloud composer environments describe $(COMPOSER_ENV) \
 		--location=$(GCP_REGION) --format="value(config.dagGcsPrefix)"); \
 	gcloud storage rsync --recursive --delete-unmatched-destination-objects \
-		--exclude='^(dbt|wcy_ingestion)/' airflow/dags/ $$PREFIX/; \
-	gcloud storage rsync --recursive dbt/ $$PREFIX/dbt/; \
-	gcloud storage rsync --recursive ingestion/src/wcy_ingestion/ $$PREFIX/wcy_ingestion/
+		--exclude='$(DEPLOY_DAGS_EXCLUDE)' airflow/dags/ $$PREFIX/; \
+	gcloud storage rsync --recursive --delete-unmatched-destination-objects --exclude='$(DEPLOY_DBT_EXCLUDE)' dbt/ $$PREFIX/dbt/; \
+	gcloud storage rsync --recursive --delete-unmatched-destination-objects --exclude='$(DEPLOY_WCY_EXCLUDE)' ingestion/src/wcy_ingestion/ $$PREFIX/wcy_ingestion/
 
 composer-up: ## Provision Composer 3 (enable_composer=true) — ~25 min
 	$(TF) -chdir=$(TF_DIR) apply -var-file=dev.tfvars -var enable_composer=true
