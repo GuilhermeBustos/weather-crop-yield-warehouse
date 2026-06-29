@@ -95,9 +95,11 @@ dags-validate: ## Parse all DAGs locally — zero import errors required
 # composer-deploy keeps the bucket lean: ship DAG modules, the dbt project (manifest +
 # packages, minus build artifacts/logs/test fixtures), and ingestion source — no bytecode
 # or tests. The dags/ exclude also shields the dbt/ + wcy_ingestion/ subtrees from --delete.
-DEPLOY_DAGS_EXCLUDE := ^(dbt|wcy_ingestion)/|(^|/)(tests|__pycache__)/|\.pyc$$
-DEPLOY_DBT_EXCLUDE  := ^target/(?!manifest\.json$$)|^logs/|(^|/)integration_tests/|(^|/)__pycache__/|\.pyc$$
-DEPLOY_WCY_EXCLUDE  := (^|/)__pycache__/|\.pyc$$
+# --exclude is a single start-anchored (re.match) regex, so a .* prefix is needed to match
+# nested paths. Avoid ( ) groups: gcloud's parser crashes when top-level | meets a group.
+DEPLOY_DAGS_EXCLUDE := dbt/|wcy_ingestion/|tests/|.*__pycache__/|.*\.pyc$$
+DEPLOY_DBT_EXCLUDE  := target/compiled/|target/run/|logs/|.*integration_tests/|.*__pycache__/|.*\.pyc$$
+DEPLOY_WCY_EXCLUDE  := .*__pycache__/|.*\.pyc$$
 
 composer-deploy: ## Sync DAGs, dbt project, and wcy_ingestion source to Composer bucket
 	@set -e; \
