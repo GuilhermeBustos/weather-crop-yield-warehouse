@@ -30,6 +30,15 @@ uv sync --group airflow
    ```bash
    make dbt-deps
    ```
+3. The dbt manifest is current. `transform_dbt` renders its task graph from
+   `dbt/target/manifest.json` (cosmos `LoadMode.DBT_MANIFEST`), so regenerate it
+   whenever models change — before every deploy:
+   ```bash
+   make dbt-build   # refreshes target/manifest.json as part of a full build
+   # or, without touching BigQuery (e.g. datasets dropped for a clean run):
+   uv run dbt parse --project-dir dbt --profiles-dir dbt/profiles
+   ```
+   A stale or missing manifest renders an outdated/empty dbt graph in Composer.
 
 ### Deploy
 
@@ -42,7 +51,7 @@ This syncs three things into the Composer DAG bucket:
 | Local path | Bucket path | Purpose |
 |---|---|---|
 | `airflow/dags/` | `dags/` | DAG files |
-| `dbt/` | `dags/dbt/` | dbt project (models, seeds, packages, profiles) |
+| `dbt/` | `dags/dbt/` | dbt project (models, seeds, packages, profiles, compiled `target/manifest.json`) |
 | `ingestion/src/wcy_ingestion/` | `dags/wcy_ingestion/` | ingestion source (not on PyPI) |
 
 `wcy_ingestion` is synced as source rather than a wheel to avoid an Artifact
