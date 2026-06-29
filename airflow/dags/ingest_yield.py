@@ -6,12 +6,20 @@ from common import YIELD_DATASET, make_default_args, run_nass_yield
 
 
 def _year_already_loaded(project: str, raw_dataset: str, year: int) -> bool:
-    """Query raw.nass_yield; return True if rows for the given year already exist."""
+    """Query raw.nass_yield; return True if rows for the given year already exist.
+
+    A missing table (fresh or cleaned warehouse) means the year isn't loaded yet, so treat
+    NotFound as "not loaded" rather than letting it crash the guard.
+    """
+    from google.api_core.exceptions import NotFound
     from google.cloud import bigquery
 
     client = bigquery.Client(project=project)
     query = f"SELECT 1 FROM `{project}.{raw_dataset}.nass_yield` WHERE year = {year} LIMIT 1"
-    return len(list(client.query(query).result())) > 0
+    try:
+        return len(list(client.query(query).result())) > 0
+    except NotFound:
+        return False
 
 
 def _ingest_or_skip() -> None:
