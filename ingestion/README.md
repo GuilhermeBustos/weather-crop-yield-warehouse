@@ -32,7 +32,7 @@ tests/                 # mocked-HTTP suite (respx); no live network
 ## Configuration
 
 Settings are read from the environment (prefix `WCY_`) or a `.env` file at the
-repo root. Two are **required**; the rest default to the locked 2025 Corn Belt
+repo root. Three are **required**; the rest default to the locked 2025 Corn Belt
 slice.
 
 | Env var | Required | Default | Notes |
@@ -40,7 +40,7 @@ slice.
 | `WCY_BRONZE_BUCKET` | ✅ | — | GCS bucket for bronze Parquet |
 | `WCY_NASS_SECRET_ID` | ✅ | — | Secret Manager secret **id** holding the NASS API key |
 | `WCY_PROJECT_ID` | — | from ADC | GCP project; discovered from credentials if unset |
-| `WCY_RAW_DATASET` | — | `raw` | BigQuery dataset for raw tables |
+| `WCY_RAW_DATASET` | ✅ | — | BigQuery dataset for raw tables |
 | `WCY_REGION` | — | `us-central1` | |
 | `WCY_TARGET_STATES` | — | `IA,IL,IN,NE,MN` | states for both pipelines |
 | `WCY_START_DATE` | — | `2025-04-01` | weather window start |
@@ -54,6 +54,7 @@ Example `.env`:
 WCY_PROJECT_ID=my-gcp-project
 WCY_BRONZE_BUCKET=my-project-bronze
 WCY_NASS_SECRET_ID=nass-api-key
+WCY_RAW_DATASET=raw
 ```
 
 The NASS key itself never goes in env or `.env` — only the **secret id**. The

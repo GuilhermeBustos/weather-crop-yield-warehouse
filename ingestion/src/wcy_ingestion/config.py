@@ -19,7 +19,7 @@ class Settings(BaseSettings):
     # GCP — project_id resolved from ADC when WCY_PROJECT_ID is not set
     project_id: str = Field(default_factory=_discover_project_id)
     bronze_bucket: str  # set WCY_BRONZE_BUCKET in .env
-    raw_dataset: str = "raw"
+    raw_dataset: str  # set WCY_RAW_DATASET in .env
     region: str = "us-central1"
 
     # Scope — locked to the 2025 Corn Belt slice
