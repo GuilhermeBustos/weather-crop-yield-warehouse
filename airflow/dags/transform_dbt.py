@@ -48,7 +48,11 @@ def transform_dbt():
         ),
         profile_config=_profile_config,
         execution_config=ExecutionConfig(),
-        render_config=RenderConfig(load_method=LoadMode.DBT_MANIFEST, emit_datasets=False),
+        # Seeds are excluded here — the dbt_seed setup step above already loads them
+        # (and installs deps); rendering them again would run the seed twice per run.
+        render_config=RenderConfig(
+            load_method=LoadMode.DBT_MANIFEST, emit_datasets=False, exclude=["resource_type:seed"]
+        ),
     )
 
     seed >> transform
