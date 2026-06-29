@@ -2,7 +2,7 @@
 UV           := uv
 TF           := terraform
 TF_DIR       := infra/terraform
-DBT_PROFILES_DIR := dbt/profiles
+DBT_PROFILES_DIR := $(CURDIR)/dbt/profiles
 export DBT_PROFILES_DIR
 
 # Overridable: must match composer_env_name / region in dev.tfvars.
