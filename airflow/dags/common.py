@@ -2,6 +2,7 @@
 
 import os
 from datetime import timedelta
+from pathlib import Path
 
 from airflow.sdk import Asset
 
@@ -10,6 +11,16 @@ from airflow.sdk import Asset
 _RAW_DATASET = os.environ["WCY_RAW_DATASET"]
 WEATHER_DATASET = Asset(f"{_RAW_DATASET}.weather_daily")
 YIELD_DATASET = Asset(f"{_RAW_DATASET}.nass_yield")
+
+# Shared dbt project paths — used by transform_dbt and backfill.
+# DBT_PROFILES_DIR is set by Terraform (T1); fall back to the repo-relative location
+# for local DAG parse/validation.
+PROFILES_DIR = Path(
+    os.environ.get(
+        "DBT_PROFILES_DIR", str(Path(__file__).resolve().parents[2] / "dbt" / "profiles")
+    )
+)
+DBT_PROJECT_DIR = PROFILES_DIR.parent
 
 
 def _on_failure_alert(context: dict) -> None:
@@ -55,3 +66,23 @@ def run_nass_yield() -> None:
     from wcy_ingestion.pipelines import nass_yield
 
     nass_yield.run(Settings())
+
+
+def run_weather_window(start_date: str, end_date: str) -> None:
+    """Run the weather pipeline for an explicit date window; used by the backfill DAG."""
+    from datetime import date as _date
+
+    from wcy_ingestion.config import Settings
+    from wcy_ingestion.pipelines import weather
+
+    weather.run(
+        Settings(start_date=_date.fromisoformat(start_date), end_date=_date.fromisoformat(end_date))
+    )
+
+
+def run_nass_yield_year(year: int) -> None:
+    """Run the NASS yield pipeline for an explicit year; used by the backfill DAG."""
+    from wcy_ingestion.config import Settings
+    from wcy_ingestion.pipelines import nass_yield
+
+    nass_yield.run(Settings(nass_year=year))
