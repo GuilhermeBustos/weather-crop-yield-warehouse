@@ -1,6 +1,10 @@
 resource "google_composer_environment" "main" {
   count = var.enable_composer ? 1 : 0
 
+  # Logging/monitoring on a custom-SA environment only works if the agent's
+  # ServiceAgentV2Ext grant lands before the environment is created.
+  depends_on = [google_project_iam_member.composer_agent_v2_ext]
+
   name   = var.composer_env_name
   region = var.region
 
@@ -53,4 +57,19 @@ resource "google_project_iam_member" "pipeline_composer_worker" {
   project = var.project_id
   role    = "roles/composer.worker"
   member  = "serviceAccount:${google_service_account.pipeline.email}"
+}
+
+# Project number, for constructing the Composer service agent identity below.
+data "google_project" "this" {}
+
+# Because the environment runs under a *custom* service account, the Cloud
+# Composer service agent also needs ServiceAgentV2Ext on top of its default
+# composer.serviceAgent role. Without it the managed logging/monitoring agents
+# can't publish to this project, so the environment runs but emits no logs.
+resource "google_project_iam_member" "composer_agent_v2_ext" {
+  count = var.enable_composer ? 1 : 0
+
+  project = var.project_id
+  role    = "roles/composer.ServiceAgentV2Ext"
+  member  = "serviceAccount:service-${data.google_project.this.number}@cloudcomposer-accounts.iam.gserviceaccount.com"
 }
