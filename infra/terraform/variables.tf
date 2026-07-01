@@ -24,8 +24,6 @@ variable "labels" {
   }
 }
 
-# ---- GCS ---------------------------------------------------------------------
-
 variable "bronze_retention_days" {
   description = "Age in days after which objects in the bronze bucket are deleted."
   type        = number
@@ -37,8 +35,6 @@ variable "bucket_force_destroy" {
   type        = bool
   default     = true
 }
-
-# ---- BigQuery ----------------------------------------------------------------
 
 # Dataset ids: name the BigQuery datasets and feed the dbt/Composer env vars.
 variable "raw_dataset" {
@@ -70,8 +66,6 @@ variable "dataset_force_destroy" {
   type        = bool
   default     = true
 }
-
-# ---- Composer -----------------------------------
 
 variable "enable_composer" {
   description = "Provision the Cloud Composer environment. Left false until needed — Composer is the largest fixed cost and runs 24/7; Phase 4 keeps it ephemeral."

@@ -25,7 +25,6 @@ class Settings(BaseSettings):
     # Scope — locked to the 2025 Corn Belt slice
     target_states: list[str] = ["IA", "IL", "IN", "NE", "MN"]
 
-    # Open-Meteo archive
     start_date: date = date(2025, 4, 1)
     end_date: date = date(2025, 10, 31)
     daily_variables: list[str] = [
@@ -44,7 +43,6 @@ class Settings(BaseSettings):
     # without leaning on the 429 retry backstop. Set to 0 to disable pacing.
     openmeteo_batch_delay_seconds: float = 60.0
 
-    # NASS Quick Stats
     commodities: list[str] = ["CORN", "SOYBEANS"]
     nass_year: int = 2025
     nass_secret_id: str  # set WCY_NASS_SECRET_ID in .env

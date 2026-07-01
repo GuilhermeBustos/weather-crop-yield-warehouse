@@ -12,10 +12,6 @@ from common import (
     run_weather,
 )
 
-# ---------------------------------------------------------------------------
-# make_default_args
-# ---------------------------------------------------------------------------
-
 
 def test_make_default_args_required_keys():
     args = make_default_args()
@@ -30,13 +26,7 @@ def test_make_default_args_overrides():
     args = make_default_args(retries=1, execution_timeout=timedelta(minutes=30))
     assert args["retries"] == 1
     assert args["execution_timeout"] == timedelta(minutes=30)
-    # Unoverridden keys stay at defaults.
     assert args["retry_exponential_backoff"] is True
-
-
-# ---------------------------------------------------------------------------
-# Dataset / Asset objects
-# ---------------------------------------------------------------------------
 
 
 def test_weather_dataset_uri():
@@ -47,11 +37,6 @@ def test_weather_dataset_uri():
 def test_yield_dataset_uri():
     assert isinstance(YIELD_DATASET, Asset)
     assert YIELD_DATASET.uri == "raw.nass_yield"
-
-
-# ---------------------------------------------------------------------------
-# _on_failure_alert
-# ---------------------------------------------------------------------------
 
 
 def test_on_failure_alert_skips_when_no_email(monkeypatch):
@@ -76,11 +61,6 @@ def test_on_failure_alert_sends_email(monkeypatch):
     assert kwargs["to"] == "alerts@example.com"
     assert "ingest_weather" in kwargs["subject"]
     assert "run" in kwargs["subject"]
-
-
-# ---------------------------------------------------------------------------
-# Pipeline wrappers
-# ---------------------------------------------------------------------------
 
 
 def test_run_weather_calls_pipeline():

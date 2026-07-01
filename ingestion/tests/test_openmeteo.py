@@ -42,12 +42,10 @@ def test_batches_and_flattens_to_fips_date():
     assert len(records) == 6
     assert route.call_count == 2  # batched: ceil(3 / 2)
 
-    # Coordinates batched in input order
     assert route.calls[0].request.url.params["latitude"] == "41.0,40.0"
     assert route.calls[0].request.url.params["longitude"] == "-94.0,-91.0"
     assert route.calls[1].request.url.params["latitude"] == "39.0"
 
-    # Response mapped back to fips in input order
     assert records[0] == {
         "fips": "19001",
         "latitude": 41.0,
@@ -56,7 +54,6 @@ def test_batches_and_flattens_to_fips_date():
         "temperature_2m_max": 10.0,
     }
     assert {r["fips"] for r in records} == {"19001", "17001", "18001"}
-    # Each (fips, date) appears exactly once
     assert len({(r["fips"], r["date"]) for r in records}) == 6
 
 

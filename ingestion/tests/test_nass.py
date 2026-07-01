@@ -57,7 +57,7 @@ def test_count_gate_aborts_before_fetch():
         nass.fetch("KEY", commodities=["CORN"], states=["IA"], year=2025)
 
     assert counts.call_count == 1
-    assert data.call_count == 0  # never reaches the data endpoint
+    assert data.call_count == 0
 
 
 @respx.mock

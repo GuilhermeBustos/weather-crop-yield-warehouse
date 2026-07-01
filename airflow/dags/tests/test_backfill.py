@@ -3,10 +3,6 @@ from unittest.mock import MagicMock, patch
 
 from common import _CENTROIDS_CSV, run_nass_yield_year, run_weather_window
 
-# ---------------------------------------------------------------------------
-# run_weather_window
-# ---------------------------------------------------------------------------
-
 
 def test_run_weather_window_calls_pipeline_with_date_overrides():
     mock_settings_cls = MagicMock()
@@ -36,11 +32,6 @@ def test_run_weather_window_parses_iso_dates():
     assert kwargs["end_date"] == date(2025, 10, 31)
 
 
-# ---------------------------------------------------------------------------
-# run_nass_yield_year
-# ---------------------------------------------------------------------------
-
-
 def test_run_nass_yield_year_calls_pipeline_with_year_override():
     mock_settings_cls = MagicMock()
     mock_run = MagicMock()
@@ -65,11 +56,6 @@ def test_run_nass_yield_year_passes_integer():
     _, kwargs = mock_settings_cls.call_args
     assert kwargs["nass_year"] == 2025
     assert isinstance(kwargs["nass_year"], int)
-
-
-# ---------------------------------------------------------------------------
-# backfill DAG params and structure
-# ---------------------------------------------------------------------------
 
 
 def test_backfill_dag_params_defaults():

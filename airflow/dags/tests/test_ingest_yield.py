@@ -4,10 +4,6 @@ import pytest
 from airflow.exceptions import AirflowSkipException
 from ingest_yield import _ingest_or_skip, _year_already_loaded
 
-# ---------------------------------------------------------------------------
-# _year_already_loaded
-# ---------------------------------------------------------------------------
-
 
 def test_year_already_loaded_returns_true_when_rows_exist():
     mock_client = MagicMock()
@@ -21,11 +17,6 @@ def test_year_already_loaded_returns_false_when_no_rows():
     mock_client.query.return_value.result.return_value = []
     with patch("google.cloud.bigquery.Client", return_value=mock_client):
         assert _year_already_loaded("proj", "raw", 2025) is False
-
-
-# ---------------------------------------------------------------------------
-# _ingest_or_skip
-# ---------------------------------------------------------------------------
 
 
 def test_ingest_or_skip_raises_when_year_already_loaded():
