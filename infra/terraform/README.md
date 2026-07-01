@@ -12,9 +12,8 @@ module indirection. Files:
 | `variables.tf` | All inputs |
 | `gcs.tf`       | Bronze landing bucket + lifecycle |
 | `bigquery.tf`  | Datasets `raw`, `staging`, `marts`, `dbt_ci` (`for_each`) |
-| `iam.tf`       | Pipeline service account + least-privilege bindings |
-| `composer.tf`  | Composer 2 env — **gated off** (`enable_composer`, Phase 4) |
-| `outputs.tf`   | Bucket name, dataset ids, SA email, Airflow URI |
+| `composer.tf`  | Composer env (`enable_composer`) + default Compute Engine SA bindings |
+| `outputs.tf`   | Bucket name, dataset ids, Airflow URI |
 | `dev.tfvars`   | `dev` environment values |
 
 Run all commands from the repo root via `make tf-*`, or `cd` here and use
@@ -73,5 +72,6 @@ In `dev.tfvars` set `composer_image_version` to that value and
 ## Secrets
 
 No secrets live in Terraform or `*.tfvars`. The NASS API key is stored in Secret
-Manager; the pipeline SA is granted `secretmanager.secretAccessor` here so it can
-read the key at runtime.
+Manager; the Composer node SA (the project's default Compute Engine SA — see
+`composer.tf`) is granted `secretmanager.secretAccessor` so it can read the key
+at runtime.

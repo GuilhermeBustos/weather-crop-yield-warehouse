@@ -71,15 +71,7 @@ variable "dataset_force_destroy" {
   default     = true
 }
 
-# ---- IAM ---------------------------------------------------------------------
-
-variable "pipeline_sa_account_id" {
-  description = "Account id of the pipeline service account."
-  type        = string
-  default     = "wcy-pipeline"
-}
-
-# ---- Composer (deferred — see composer.tf) -----------------------------------
+# ---- Composer -----------------------------------
 
 variable "enable_composer" {
   description = "Provision the Cloud Composer environment. Left false until needed — Composer is the largest fixed cost and runs 24/7; Phase 4 keeps it ephemeral."
