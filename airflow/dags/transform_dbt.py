@@ -17,6 +17,13 @@ _profile_config = ProfileConfig(
     catchup=False,
     default_args=make_default_args(),
     tags=["wcy", "transform"],
+    # Cosmos renders one task per dbt node from the manifest, wired together via
+    # ref()-derived task dependencies — a model still can't start before its
+    # upstream models finish. Airflow's core.max_active_tasks_per_dag default
+    # (16) already covers today's widest independent layer (the 5 staging/dim
+    # models with no ref() between them), but the medium environment has the
+    # scheduler/worker headroom to go higher as more marts are added.
+    max_active_tasks=24,
 )
 def transform_dbt():
     seed = DbtSeedLocalOperator(
