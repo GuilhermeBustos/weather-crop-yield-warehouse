@@ -101,3 +101,13 @@ resource "google_project_iam_member" "default_sa_secret_accessor" {
   role    = "roles/secretmanager.secretAccessor"
   member  = "serviceAccount:${data.google_compute_default_service_account.default.email}"
 }
+
+data "google_project" "this" {}
+
+resource "google_project_iam_member" "composer_agent_v2_ext" {
+  count = var.enable_composer ? 1 : 0
+
+  project = var.project_id
+  role    = "roles/composer.ServiceAgentV2Ext"
+  member  = "serviceAccount:service-${data.google_project.this.number}@cloudcomposer-accounts.iam.gserviceaccount.com"
+}
