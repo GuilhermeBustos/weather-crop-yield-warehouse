@@ -510,3 +510,74 @@ Use this section as a lightweight decision log (ADR-lite). Seed entries:
   (≈ 4.0 t/ha) — both agronomically sane for the 2025 Corn Belt. `make lint`
   (ruff) and `make sql-lint` (sqlfluff, dbt templater) are green; `dbt docs
   generate` renders the lineage graph.
+
+### Phase 4 (Orchestration / Composer) decisions
+
+- **Ephemeral Composer 3 / Airflow 3 — provision → demo → destroy.** Composer has
+  no free tier (≈ $300+/month while up), so the environment is stood up only to
+  prove the pipeline end-to-end, then torn down. Image pinned to
+  `composer-3-airflow-3.1.7-build.11` (Airflow 3 ⇒ Composer 3); `enable_composer`
+  stays `false` in `dev.tfvars` and is flipped on only at bootstrap. Two teardown
+  levers: **soft** (`enable_composer=false` + `terraform apply` → drops just the
+  Composer env, keeps the cheap BQ/GCS data) and **hard** (`terraform destroy` →
+  removes everything). The Composer-managed **auto-bucket** (created by the service,
+  not Terraform) is a documented manual post-destroy check — see
+  [airflow/README.md](../airflow/README.md).
+- **dbt via astronomer-cosmos; tests `AFTER_ALL`.** `transform_dbt` renders the
+  `wcy` project as native Airflow tasks (one per model/test) from the compiled
+  `target/manifest.json` (`LoadMode.DBT_MANIFEST`) for per-node observability and
+  retries, rather than an opaque `dbt build` BashOperator. Cosmos runs with
+  `TestBehavior.AFTER_ALL` — **not** the default `AFTER_EACH` — because `AFTER_EACH`
+  runs a dimension's `relationships` test (which queries the downstream
+  `weather_yield_analysis`) before that table is built, failing the run; deferring
+  all tests to the end fixes the ordering. `emit_datasets=False`, and the seed is
+  excluded from the render and run once up front via a `DbtSeedLocalOperator` to
+  avoid a double seed.
+- **Three Asset-coordinated DAGs + a backfill DAG; `catchup=False`.**
+  `ingest_weather` and `ingest_yield` each publish an Airflow **Asset**
+  (`<raw>.weather_daily`, `<raw>.nass_yield`) on success; `transform_dbt` is
+  **scheduled on both Assets** so it runs only after both ingestions update — no
+  manual ordering. `ingest_yield` is guarded (`AirflowSkipException`) to no-op when
+  the configured NASS year is already loaded (a missing table counts as
+  not-loaded, so a clean warehouse still ingests). A separate `backfill` DAG
+  parameterizes the weather window + NASS year, reusing the same wrappers + cosmos
+  render (no forked logic). All run `catchup=False` — the 2025 slice is a one-shot
+  aligned window with no new data arriving. Ingestion runs **in-process** as Python
+  tasks calling the existing `weather.run` / `nass_yield.run` entrypoints;
+  `wcy_ingestion` is synced to the DAG bucket as source (not a wheel) with only its
+  third-party deps added via `pypi_packages`, so **no Artifact Registry** is
+  introduced and teardown stays a single `destroy`.
+- **Node SA = default Compute Engine SA (supersedes the pipeline-SA spec).**
+  Phase 4 planning (spec FR-1/FR-9, T1) had Composer's node pool run as the custom
+  Phase 1 `pipeline` SA. In practice a **custom-SA Composer log-delivery fault**
+  blocked task-log delivery, so the node pool now runs as the project **default
+  Compute Engine SA**, granted the same DAG-facing roles the pipeline SA carried
+  (`bigquery.jobUser`, per-dataset `bigquery.dataEditor`, bronze
+  `storage.objectAdmin`, `secretmanager.secretAccessor`) plus `composer.worker`;
+  the cloud-composer service agent gets `composer.ServiceAgentV2Ext`. The
+  now-unused `pipeline` SA and its `iam.tf` bindings were removed. Trade-off: the
+  default compute SA is broader than a least-privilege custom SA — accepted because
+  the environment is **ephemeral** and destroyed after the demo. Secrets are
+  unaffected: the NASS key stays in Secret Manager, fetched at runtime via ADC; no
+  keyfiles, no Airflow Connections with embedded secrets, and `profiles.yml` stays
+  env-driven `oauth`.
+- **Environment size `MEDIUM` (supersedes `SMALL`).** The locked spec said
+  `ENVIRONMENT_SIZE_SMALL`; `dev.tfvars` runs **`MEDIUM`** for scheduler/worker
+  headroom so cosmos can build the independent staging/dim layer in parallel
+  (`transform_dbt` sets `max_active_tasks=24`). Cost stays bounded by the ephemeral
+  lifecycle.
+- **No failure-alert callback.** The spec's `on_failure_callback` email alert
+  (FR-8 / V-5) is **dropped** — out of scope for this portfolio build and never
+  wired to an SMTP backend. Reliability rides on **retries + exponential backoff +
+  `execution_timeout`** only; a failed task still surfaces in the Airflow UI.
+- **Verification (2025 slice, live).** The Composer env came up `RUNNING`;
+  triggering `ingest_weather` + `ingest_yield` dataset-triggered `transform_dbt`,
+  which rebuilt staging → marts via cosmos (per-model tasks in dependency order,
+  confirmed by staggered `marts.*` last-modified times after provisioning).
+  Structural tests green; `marts.weather_yield_analysis` = **607** county ×
+  commodity rows, corn ≈ **200 bu/acre**, soybeans ≈ **59 bu/acre** — agronomically
+  sane for the 2025 Corn Belt. All four DAGs parse locally with zero import errors
+  (`make dags-validate`); the DAG unit tests pass. Teardown: `make composer-down` /
+  `make tf-destroy` remove the env and all Phase 4 IAM; `gcloud composer
+  environments list` is empty afterward; the Composer auto-bucket is deleted
+  manually.

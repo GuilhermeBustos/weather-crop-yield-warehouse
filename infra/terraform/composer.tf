@@ -69,7 +69,7 @@ resource "google_composer_environment" "main" {
 # --- Default Compute Engine SA grants ---------------------------------------
 # Composer's node pool now runs as the default Compute Engine SA rather than
 # the custom pipeline SA, so it needs the same DAG-facing permissions the
-# pipeline SA carries in iam.tf: BigQuery job/data access, bronze bucket
+# now-removed pipeline SA carried: BigQuery job/data access, bronze bucket
 # object access, and Secret Manager read (for the NASS API key).
 
 resource "google_project_iam_member" "default_sa_composer_worker" {

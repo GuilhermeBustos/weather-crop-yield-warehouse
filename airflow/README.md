@@ -106,15 +106,25 @@ BigQuery datasets, and the bronze GCS bucket.
 
 ### Phase 4 Terraform inventory
 
-Phase 4 added exactly two resources to Terraform, both in
-`infra/terraform/composer.tf` and both gated by `count = var.enable_composer ? 1 : 0`:
+Phase 4 resources all live in `infra/terraform/composer.tf` and are gated by
+`var.enable_composer` (`count`/`for_each`). Composer's node pool runs as the
+project **default Compute Engine SA** (not the custom Phase 1 `pipeline` SA — a
+custom-SA log-delivery fault forced the switch, and the `pipeline` SA was
+removed). The IAM bindings grant that default SA the pipeline's DAG-facing roles:
 
-| Resource | Destroyed by |
-|---|---|
-| `google_composer_environment.main` | `composer-down` or `tf-destroy` |
-| `google_project_iam_member.pipeline_composer_worker` | `composer-down` or `tf-destroy` |
+| Resource | Kind | Destroyed by |
+|---|---|---|
+| `google_composer_environment.main` | Composer env (the only billable one) | `composer-down` or `tf-destroy` |
+| `google_project_iam_member.default_sa_composer_worker` | IAM (`composer.worker`) | `composer-down` or `tf-destroy` |
+| `google_project_iam_member.default_sa_bq_job_user` | IAM (`bigquery.jobUser`) | `composer-down` or `tf-destroy` |
+| `google_bigquery_dataset_iam_member.default_sa_data_editor` | IAM (`bigquery.dataEditor`, one per dataset) | `composer-down` or `tf-destroy` |
+| `google_storage_bucket_iam_member.default_sa_bronze_object_admin` | IAM (bronze `storage.objectAdmin`) | `composer-down` or `tf-destroy` |
+| `google_project_iam_member.default_sa_secret_accessor` | IAM (`secretmanager.secretAccessor`) | `composer-down` or `tf-destroy` |
+| `google_project_iam_member.composer_agent_v2_ext` | IAM (`composer.ServiceAgentV2Ext` on the Composer service agent) | `composer-down` or `tf-destroy` |
 
-No other Phase 4 billable resource was introduced. Specifically:
+Only `google_composer_environment.main` is billable; the IAM bindings cost
+nothing and vanish on soft-down/destroy. No other Phase 4 billable resource was
+introduced. Specifically:
 
 - **No Artifact Registry** — `wcy_ingestion` is synced as Python source into
   the DAG bucket rather than published as a wheel, so no registry resource
@@ -123,14 +133,14 @@ No other Phase 4 billable resource was introduced. Specifically:
   Composer environment itself.
 
 When `enable_composer = false` (soft lever) or after `terraform destroy` (hard
-lever), both Phase 4 resources are absent and no billable Phase 4 resource
+lever), all Phase 4 resources are absent and no billable Phase 4 resource
 persists.
 
 ### Two teardown levers
 
 | Lever | Command | What it removes | What it keeps |
 |---|---|---|---|
-| **Soft** | `make composer-down` | Composer environment + `composer.worker` IAM binding | BigQuery datasets, bronze GCS bucket, service account |
+| **Soft** | `make composer-down` | Composer environment + all Phase 4 IAM bindings | BigQuery datasets, bronze GCS bucket |
 | **Hard** | `make tf-destroy` | Everything above + all warehouse data | Nothing (full destroy) |
 
 Use the soft lever between demo runs to stop billing while preserving data.
