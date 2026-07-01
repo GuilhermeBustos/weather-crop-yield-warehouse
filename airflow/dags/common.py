@@ -26,30 +26,13 @@ DBT_PROJECT_DIR = PROFILES_DIR.parent
 _CENTROIDS_CSV = DBT_PROJECT_DIR / "seeds" / "county_centroids.csv"
 
 
-def _on_failure_alert(context: dict) -> None:
-    recipient = os.environ.get("WCY_ALERT_EMAIL", "")
-    if not recipient:
-        return
-    from airflow.utils.email import send_email
-
-    ti = context["task_instance"]
-    send_email(
-        to=recipient,
-        subject=f"[wcy] {ti.dag_id}.{ti.task_id} failed",
-        html_content=(
-            f"<p><b>{ti.dag_id}.{ti.task_id}</b> failed on run <code>{ti.run_id}</code>.</p>"
-        ),
-    )
-
-
 def make_default_args(**overrides) -> dict:
-    """Return task default_args with retries, exponential backoff, timeout, and alert."""
+    """Return task default_args with retries, exponential backoff, and execution timeout."""
     args = {
         "retries": 3,
         "retry_delay": timedelta(minutes=5),
         "retry_exponential_backoff": True,
         "execution_timeout": timedelta(hours=2),
-        "on_failure_callback": _on_failure_alert,
     }
     args.update(overrides)
     return args

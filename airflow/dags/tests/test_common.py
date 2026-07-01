@@ -6,7 +6,6 @@ from common import (
     _CENTROIDS_CSV,
     WEATHER_DATASET,
     YIELD_DATASET,
-    _on_failure_alert,
     make_default_args,
     run_nass_yield,
     run_weather,
@@ -19,7 +18,6 @@ def test_make_default_args_required_keys():
     assert isinstance(args["retry_delay"], timedelta)
     assert args["retry_exponential_backoff"] is True
     assert isinstance(args["execution_timeout"], timedelta)
-    assert callable(args["on_failure_callback"])
 
 
 def test_make_default_args_overrides():
@@ -37,30 +35,6 @@ def test_weather_dataset_uri():
 def test_yield_dataset_uri():
     assert isinstance(YIELD_DATASET, Asset)
     assert YIELD_DATASET.uri == "raw.nass_yield"
-
-
-def test_on_failure_alert_skips_when_no_email(monkeypatch):
-    monkeypatch.delenv("WCY_ALERT_EMAIL", raising=False)
-    with patch("airflow.utils.email.send_email") as mock_send:
-        _on_failure_alert({"task_instance": MagicMock()})
-    mock_send.assert_not_called()
-
-
-def test_on_failure_alert_sends_email(monkeypatch):
-    monkeypatch.setenv("WCY_ALERT_EMAIL", "alerts@example.com")
-    ti = MagicMock()
-    ti.dag_id = "ingest_weather"
-    ti.task_id = "run"
-    ti.run_id = "manual__2025-01-01"
-
-    with patch("airflow.utils.email.send_email") as mock_send:
-        _on_failure_alert({"task_instance": ti})
-
-    mock_send.assert_called_once()
-    kwargs = mock_send.call_args.kwargs
-    assert kwargs["to"] == "alerts@example.com"
-    assert "ingest_weather" in kwargs["subject"]
-    assert "run" in kwargs["subject"]
 
 
 def test_run_weather_calls_pipeline():
