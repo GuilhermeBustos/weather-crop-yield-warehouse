@@ -47,9 +47,12 @@ resource "google_composer_environment" "main" {
 
     environment_size = var.composer_environment_size
 
-    # No service_account set: Composer falls back to the project's default
-    # Compute Engine SA (data.google_compute_default_service_account.default).
-    node_config {}
+    # Composer's API requires an explicit service account — it will not fall
+    # back to the default Compute Engine SA on its own, so pass its email
+    # through rather than omitting node_config.service_account.
+    node_config {
+      service_account = data.google_compute_default_service_account.default.email
+    }
   }
 }
 
