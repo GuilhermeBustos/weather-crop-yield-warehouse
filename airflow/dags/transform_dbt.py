@@ -3,7 +3,7 @@
 from airflow.sdk import dag
 from common import DBT_PROJECT_DIR, PROFILES_DIR, WEATHER_DATASET, YIELD_DATASET, make_default_args
 from cosmos import DbtTaskGroup, ExecutionConfig, ProfileConfig, ProjectConfig, RenderConfig
-from cosmos.constants import LoadMode
+from cosmos.constants import LoadMode, TestBehavior
 from cosmos.operators.local import DbtSeedLocalOperator
 
 _profile_config = ProfileConfig(
@@ -30,16 +30,15 @@ def transform_dbt():
         group_id="dbt_transform",
         project_config=ProjectConfig(
             dbt_project_path=DBT_PROJECT_DIR,
-            # LoadMode.DBT_MANIFEST reads the pre-generated manifest.json instead of
-            # running dbt ls, avoiding any profile/credential requirement at parse time.
             manifest_path=DBT_PROJECT_DIR / "target" / "manifest.json",
         ),
         profile_config=_profile_config,
         execution_config=ExecutionConfig(),
-        # Seeds are excluded here — the dbt_seed setup step above already loads them
-        # (and installs deps); rendering them again would run the seed twice per run.
         render_config=RenderConfig(
-            load_method=LoadMode.DBT_MANIFEST, emit_datasets=False, exclude=["resource_type:seed"]
+            load_method=LoadMode.DBT_MANIFEST,
+            emit_datasets=False,
+            exclude=["resource_type:seed"],
+            test_behavior=TestBehavior.AFTER_ALL,
         ),
     )
 
