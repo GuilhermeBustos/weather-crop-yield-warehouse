@@ -47,6 +47,16 @@ resource "google_composer_environment" "main" {
 
     environment_size = var.composer_environment_size
 
+    workloads_config {
+      worker {
+        cpu        = 2
+        memory_gb  = 8
+        storage_gb = 10
+        min_count  = 1
+        max_count  = 3
+      }
+    }
+
     # Composer's API requires an explicit service account — it will not fall
     # back to the default Compute Engine SA on its own, so pass its email
     # through rather than omitting node_config.service_account.
