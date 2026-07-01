@@ -1,9 +1,12 @@
+# The project's default Compute Engine SA. Composer's node pool now runs
+# under this SA (instead of the custom pipeline SA) to rule out custom-SA
+# logging/monitoring issues.
+data "google_compute_default_service_account" "default" {
+  project = var.project_id
+}
+
 resource "google_composer_environment" "main" {
   count = var.enable_composer ? 1 : 0
-
-  # Logging/monitoring on a custom-SA environment only works if the agent's
-  # ServiceAgentV2Ext grant lands before the environment is created.
-  depends_on = [google_project_iam_member.composer_agent_v2_ext]
 
   name   = var.composer_env_name
   region = var.region
@@ -44,32 +47,54 @@ resource "google_composer_environment" "main" {
 
     environment_size = var.composer_environment_size
 
-    node_config {
-      service_account = google_service_account.pipeline.email
-    }
+    # No service_account set: Composer falls back to the project's default
+    # Compute Engine SA (data.google_compute_default_service_account.default).
+    node_config {}
   }
 }
 
-# The environment's service account needs composer.worker — only when enabled.
-resource "google_project_iam_member" "pipeline_composer_worker" {
+# --- Default Compute Engine SA grants ---------------------------------------
+# Composer's node pool now runs as the default Compute Engine SA rather than
+# the custom pipeline SA, so it needs the same DAG-facing permissions the
+# pipeline SA carries in iam.tf: BigQuery job/data access, bronze bucket
+# object access, and Secret Manager read (for the NASS API key).
+
+resource "google_project_iam_member" "default_sa_composer_worker" {
   count = var.enable_composer ? 1 : 0
 
   project = var.project_id
   role    = "roles/composer.worker"
-  member  = "serviceAccount:${google_service_account.pipeline.email}"
+  member  = "serviceAccount:${data.google_compute_default_service_account.default.email}"
 }
 
-# Project number, for constructing the Composer service agent identity below.
-data "google_project" "this" {}
-
-# Because the environment runs under a *custom* service account, the Cloud
-# Composer service agent also needs ServiceAgentV2Ext on top of its default
-# composer.serviceAgent role. Without it the managed logging/monitoring agents
-# can't publish to this project, so the environment runs but emits no logs.
-resource "google_project_iam_member" "composer_agent_v2_ext" {
+resource "google_project_iam_member" "default_sa_bq_job_user" {
   count = var.enable_composer ? 1 : 0
 
   project = var.project_id
-  role    = "roles/composer.ServiceAgentV2Ext"
-  member  = "serviceAccount:service-${data.google_project.this.number}@cloudcomposer-accounts.iam.gserviceaccount.com"
+  role    = "roles/bigquery.jobUser"
+  member  = "serviceAccount:${data.google_compute_default_service_account.default.email}"
+}
+
+resource "google_bigquery_dataset_iam_member" "default_sa_data_editor" {
+  for_each = var.enable_composer ? google_bigquery_dataset.this : {}
+
+  dataset_id = each.value.dataset_id
+  role       = "roles/bigquery.dataEditor"
+  member     = "serviceAccount:${data.google_compute_default_service_account.default.email}"
+}
+
+resource "google_storage_bucket_iam_member" "default_sa_bronze_object_admin" {
+  count = var.enable_composer ? 1 : 0
+
+  bucket = google_storage_bucket.bronze.name
+  role   = "roles/storage.objectAdmin"
+  member = "serviceAccount:${data.google_compute_default_service_account.default.email}"
+}
+
+resource "google_project_iam_member" "default_sa_secret_accessor" {
+  count = var.enable_composer ? 1 : 0
+
+  project = var.project_id
+  role    = "roles/secretmanager.secretAccessor"
+  member  = "serviceAccount:${data.google_compute_default_service_account.default.email}"
 }
